@@ -1,6 +1,7 @@
 from collections import namedtuple
 from os import listdir
 from os.path import isfile, join
+import numpy as np
 import csv
 import pyzed.sl as sl
 import cv2
@@ -24,6 +25,12 @@ pause = False
 position = None
 file_names = None
 SIZE = 320
+
+
+def save_img(img):
+    folder = 'krita/img'
+    i = max([int(fn[:-4]) for fn in listdir(folder) if isfile(join(folder, fn)) and fn.endswith('.png')] + [0]) + 1
+    cv2.imwrite(join(folder, '%03d.png' % i), img)
 
 
 def play(filepath):
@@ -51,6 +58,7 @@ def play(filepath):
             cam.retrieve_image(mat)
             position = cam.get_svo_position()
             img = mat.get_data()
+            img_initial = np.copy(img)
             for cut in cuts.get(file_names[idx], []):
                 if cut.start <= position and (cut.stop is None or cut.stop > position):
                     cv2.rectangle(img, (cut.left, cut.top), (cut.left + SIZE, cut.top + SIZE), colors[cut.type], 1)
@@ -76,6 +84,8 @@ def play(filepath):
             cuts[idx] = [cut for cut in cuts.get(idx, []) if cut.type != current_type]
         elif key == ord('s'):
             save()
+        elif key == ord('i'):
+            save_img(img_initial)
         elif chr(key) in '012345':
             current_type = key - ord('0')
 
@@ -141,7 +151,7 @@ def main(base_folder='/home/igor/terra/svo', folder='sar', file_mask='sar/rec201
 
     cv2.namedWindow("ZED")
     cv2.setMouseCallback("ZED", click)
-    idx = 20
+    idx = 5
     while 0 <= idx < len(file_names):
         print(file_names[idx])
         if not play(join(base_folder, file_names[idx])):
