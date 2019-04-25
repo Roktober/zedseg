@@ -1,11 +1,12 @@
 from collections import namedtuple
-from os.path import isfile
+from os import listdir
+from os.path import isfile, join
 import csv
 import pyzed.sl as sl
 import cv2
 
 
-Cut = namedtuple('Cut', 'idx left top start stop type')
+Cut = namedtuple('Cut', 'file left top start stop type')
 
 cuts = {}
 colors = [
@@ -21,6 +22,7 @@ idx = 5
 current_type = 1
 pause = False
 position = None
+file_names = None
 SIZE = 320
 
 
@@ -49,7 +51,7 @@ def play(filepath):
             cam.retrieve_image(mat)
             position = cam.get_svo_position()
             img = mat.get_data()
-            for cut in cuts.get(idx, []):
+            for cut in cuts.get(file_names[idx], []):
                 if cut.start <= position and (cut.stop is None or cut.stop > position):
                     cv2.rectangle(img, (cut.left, cut.top), (cut.left + SIZE, cut.top + SIZE), colors[cut.type], 1)
 
@@ -85,14 +87,15 @@ def play(filepath):
 def click(event, x, y, flags, param):
     global cuts, current_type
 
+    fn = file_names[idx]
     if event == cv2.EVENT_LBUTTONDOWN:
-        cs = [cut for cut in cuts.get(idx, []) if cut.type != current_type]
-        cs.append(Cut(idx, x - SIZE // 2, y - SIZE // 2, position, None, current_type))
-        cuts[idx] = cs
+        cs = [cut for cut in cuts.get(fn, []) if cut.type != current_type]
+        cs.append(Cut(fn, x - SIZE // 2, y - SIZE // 2, position, None, current_type))
+        cuts[fn] = cs
     elif event == cv2.EVENT_RBUTTONDOWN:
-        cuts[idx] = [
-            cut if cut.type != current_type else Cut(cut.idx, cut.left, cut.top, cut.start, position, cut.type)
-            for cut in cuts.get(idx, [])
+        cuts[fn] = [
+            cut if cut.type != current_type else Cut(cut.file, cut.left, cut.top, cut.start, position, cut.type)
+            for cut in cuts.get(fn, [])
         ]
 
 
@@ -116,23 +119,32 @@ def load():
                 if is_title:
                     is_title = False
                     continue
-                cut = Cut(*[None if t == '' else int(t) for t in row])
-                cs = cuts.get(cut.idx, None)
+                cut = Cut(*[
+                    t if i == 0 else (None if t == '' else int(t))
+                    for i, t in enumerate(row)
+                ])
+                cs = cuts.get(cut.file, None)
                 if cs is None:
-                    cuts[cut.idx] = [cut]
+                    cuts[cut.file] = [cut]
                 else:
                     cs.append(cut)
 
 
-def main(file_mask='/home/igor/terra/svo/sar/rec2018_07_21-%d.svo'):
-    global idx
+def main(base_folder='/home/igor/terra/svo', folder='sar', file_mask='sar/rec2018_07_21-%d.svo'):
+    global idx, file_names
     load()
+    file_names = sorted([
+        join(folder, fn)
+        for fn in listdir(join(base_folder, folder))
+        if isfile(join(base_folder, folder, fn)) and fn.endswith('.svo')
+    ], key=lambda n: ('-'.join(n.split('-')[:-1]), int(n.split('-')[-1][:-4])))
+
     cv2.namedWindow("ZED")
     cv2.setMouseCallback("ZED", click)
     idx = 20
-    while isfile(file_mask % idx):
-        print(idx)
-        if not play(file_mask % idx):
+    while 0 <= idx < len(file_names):
+        print(file_names[idx])
+        if not play(join(base_folder, file_names[idx])):
             break
     save('cuts_bak.csv')
 
