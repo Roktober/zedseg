@@ -1,13 +1,10 @@
-from collections import namedtuple
 from os import listdir
 from os.path import isfile, join
 import numpy as np
-import csv
 import pyzed.sl as sl
 import cv2
+from csv_cut import load, save, Cut
 
-
-Cut = namedtuple('Cut', 'file left top start stop type')
 
 cuts = {}
 colors = [
@@ -34,7 +31,7 @@ def save_img(img):
 
 
 def play(filepath):
-    global idx, current_type, pause, position
+    global idx, current_type, pause, position, cuts
 
     init = sl.InitParameters(svo_input_filename=filepath, svo_real_time_mode=False)
     cam = sl.Camera()
@@ -83,7 +80,7 @@ def play(filepath):
         elif key == ord('-'):
             cuts[idx] = [cut for cut in cuts.get(idx, []) if cut.type != current_type]
         elif key == ord('s'):
-            save()
+            save(cuts)
         elif key == ord('i'):
             save_img(img_initial)
         elif chr(key) in '012345':
@@ -109,40 +106,9 @@ def click(event, x, y, flags, param):
         ]
 
 
-def save(name='cuts.csv'):
-    global cuts
-    with open(name, 'w') as f:
-        w = csv.writer(f)
-        w.writerow(Cut._fields)
-        for cs in cuts.values():
-            for cut in cs:
-                w.writerow(list(cut))
-
-
-def load():
-    global cuts
-    if isfile('cuts.csv'):
-        with open('cuts.csv', 'r') as f:
-            reader = csv.reader(f)
-            is_title = True
-            for row in reader:
-                if is_title:
-                    is_title = False
-                    continue
-                cut = Cut(*[
-                    t if i == 0 else (None if t == '' else int(t))
-                    for i, t in enumerate(row)
-                ])
-                cs = cuts.get(cut.file, None)
-                if cs is None:
-                    cuts[cut.file] = [cut]
-                else:
-                    cs.append(cut)
-
-
 def main(base_folder='/home/igor/terra/svo', folder='sar', file_mask='sar/rec2018_07_21-%d.svo'):
-    global idx, file_names
-    load()
+    global idx, file_names, cuts
+    load(cuts)
     file_names = sorted([
         join(folder, fn)
         for fn in listdir(join(base_folder, folder))
@@ -156,7 +122,7 @@ def main(base_folder='/home/igor/terra/svo', folder='sar', file_mask='sar/rec201
         print(file_names[idx])
         if not play(join(base_folder, file_names[idx])):
             break
-    save('cuts_bak.csv')
+    save(cuts, 'cuts_bak.csv')
 
 
 if __name__ == "__main__":
