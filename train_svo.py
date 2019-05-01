@@ -1,18 +1,22 @@
 from unet import UNet, UNetLayerInfo
 from csv_cut import load, generate
 import numpy as np
+import json
 import cv2
 import torch
 
 
 print('PyTorch version: ', torch.__version__)
 USE_CUDA = torch.cuda.is_available()
-print('Use CUDA: ', USE_CUDA)
+print('Use CUDA: ', torch.version.cuda if USE_CUDA else False)
 device = torch.device('cuda' if USE_CUDA else 'cpu')
 
 
-def show_images(image, name):
-    image = (image.detach().cpu().numpy() * 255).astype(np.uint8)
+def show_images(image_torch, name):
+    try:
+        image = (image_torch.detach().cpu().numpy() * 255).astype(np.uint8)
+    except RuntimeError as e:
+        raise e
     b, c, ih, iw = image.shape
     if c < 3:
         image = np.concatenate((image, np.zeros((b, 3 - c, ih, iw), dtype=np.uint8)), axis=1)
@@ -26,32 +30,19 @@ def show_images(image, name):
 
 
 def main():
-    model = UNet(
-        3, 2,
-        downs=[
-            (64, 2),
-            (128, 2),
-            (256, 2),
-            (512, 2),
-            (512, None)
-        ],
-        ups=[
-            (64, 2),
-            (64, 2),
-            (128, 2),
-            (256, 2)
-        ]
-    ).to(device)
+    with open('config.json', 'r') as f:
+        config = json.load(f)
+    base_dir = config['svo_dir']
+    batch = config['svo_batch']
+    model = UNet(**config['unet']).to(device)
     cuts = {}
-    load(cuts)
-    for x, target in generate(cuts, {0: 4, 1: 4}, device=device):
-        y = model(x)
+    load(cuts, base_dir=base_dir)
+    for x, target in generate(cuts, {0: batch, 1: batch}, device=device, base_dir=base_dir):
+        # y = model(x)
         show_images(x, 'x')
-        show_images(y, 'y')
+        # show_images(y, 'y')
         show_images(target, 'target')
         key = cv2.waitKey(1)
-        print()
-    print()
 
 
 if __name__ == "__main__":

@@ -20,7 +20,7 @@ def save(cuts: [Cut], name='cuts.csv'):
                 w.writerow(list(cut))
 
 
-def load(cuts: {Cut}):
+def load(cuts: {Cut}, base_dir=None):
     if isfile('cuts.csv'):
         with open('cuts.csv', 'r') as f:
             reader = csv.reader(f)
@@ -34,6 +34,8 @@ def load(cuts: {Cut}):
                     for i, t in enumerate(row)
                 ])
                 cs = cuts.get(cut.file, None)
+                if base_dir is not None and not isfile(join(base_dir, cut.file)):
+                    continue
                 if cs is None:
                     cuts[cut.file] = [cut]
                 else:
@@ -87,4 +89,7 @@ def generate(cuts: {Cut}, widths, size=320, base_dir='/media/igor/Terra/svo', de
                 input_batch[t] = torch.tensor(image).float() / 255
 
             o += w
-        yield input_batch.to(device), output_batch
+        try:
+            yield input_batch.to(device), output_batch
+        except RuntimeError as e:
+            raise e

@@ -16,7 +16,10 @@ class Conv(nn.Module):
         )
 
     def forward(self, x):
-        x = self.conv(x)
+        try:
+            x = self.conv(x)
+        except RuntimeError as e:
+            raise e
         return x
 
 
@@ -40,7 +43,7 @@ class Up(nn.Module):
         #  would be a nice idea if the upsampling could be learned too,
         #  but my machine do not have enough memory to handle all those weights
         if bilinear:
-            self.up = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
+            self.up = lambda x: F.interpolate(x, scale_factor=2, mode='bilinear', align_corners=True)
         else:
             self.up = nn.ConvTranspose2d(in_ch // 2, in_ch // 2, 2, stride=2)
 
@@ -75,12 +78,12 @@ class UNet(nn.Module):
         super(UNet, self).__init__()
         # down_channels = list([li.down_channels for li in arch])
         self.inc = Conv(n_channels, downs[0][0])
-        self.downs = [Down(pr_c, nx_c, pr_l) for (pr_c, pr_l), (nx_c, _) in zip(downs[:-1], downs[1:])]
+        self.downs = nn.ModuleList([Down(pr_c, nx_c, pr_l) for (pr_c, pr_l), (nx_c, _) in zip(downs[:-1], downs[1:])])
 
-        self.ups = [
+        self.ups = nn.ModuleList([
             Up(downs[i][0] + (ups[i + 1][0] if i < len(ups) - 1 else downs[-1][0]), out_c, layers)
             for i, (out_c, layers) in enumerate(ups)
-        ]
+        ])
 
 #        self.down1 = Down(64, 128)
 #        self.down2 = Down(128, 256)
