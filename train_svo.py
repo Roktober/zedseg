@@ -2,10 +2,17 @@ from unet import UNet, UNetLayerInfo
 from csv_cut import load, generate
 import numpy as np
 import cv2
+import torch
+
+
+print('PyTorch version: ', torch.__version__)
+USE_CUDA = torch.cuda.is_available()
+print('Use CUDA: ', USE_CUDA)
+device = torch.device('cuda' if USE_CUDA else 'cpu')
 
 
 def show_images(image, name):
-    image = (image.cpu().numpy() * 255).astype(np.uint8)
+    image = (image.detach().cpu().numpy() * 255).astype(np.uint8)
     b, c, ih, iw = image.shape
     if c < 3:
         image = np.concatenate((image, np.zeros((b, 3 - c, ih, iw), dtype=np.uint8)), axis=1)
@@ -20,7 +27,7 @@ def show_images(image, name):
 
 def main():
     model = UNet(
-        3, 4,
+        3, 2,
         downs=[
             (64, 2),
             (128, 2),
@@ -34,13 +41,15 @@ def main():
             (128, 2),
             (256, 2)
         ]
-    )
+    ).to(device)
     cuts = {}
     load(cuts)
-    for x, y in generate(cuts, {0: 4, 1: 4}):
+    for x, target in generate(cuts, {0: 4, 1: 4}, device=device):
+        y = model(x)
         show_images(x, 'x')
         show_images(y, 'y')
-        cv2.waitKey(1)
+        show_images(target, 'target')
+        key = cv2.waitKey(1)
         print()
     print()
 

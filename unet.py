@@ -9,10 +9,10 @@ class Conv(nn.Module):
         super(Conv, self).__init__()
         self.conv = nn.Sequential(
             *sum([[
-                nn.Conv2d(in_ch, out_ch, 3, padding=1),
+                nn.Conv2d(in_ch if i == 0 else out_ch, out_ch, 3, padding=1),
                 nn.BatchNorm2d(out_ch),
                 nn.ReLU(inplace=True)
-            ] for _ in range(layers)], [])
+            ] for i in range(layers)], [])
         )
 
     def forward(self, x):
@@ -75,10 +75,10 @@ class UNet(nn.Module):
         super(UNet, self).__init__()
         # down_channels = list([li.down_channels for li in arch])
         self.inc = Conv(n_channels, downs[0][0])
-        self.downs = [DownInfo(pr_c, nx_c, pr_l) for (pr_c, pr_l), (nx_c, _) in zip(downs[:-1], downs[1:])]
+        self.downs = [Down(pr_c, nx_c, pr_l) for (pr_c, pr_l), (nx_c, _) in zip(downs[:-1], downs[1:])]
 
         self.ups = [
-            UpInfo(downs[i][0] + (ups[i + 1][0] if i < len(ups) - 1 else downs[-1][0]), out_c, layers)
+            Up(downs[i][0] + (ups[i + 1][0] if i < len(ups) - 1 else downs[-1][0]), out_c, layers)
             for i, (out_c, layers) in enumerate(ups)
         ]
 
@@ -98,7 +98,7 @@ class UNet(nn.Module):
         for i, down in enumerate(self.downs):
             xs[i + 1] = down(xs[i])
         x = xs[-1]
-        for i, up in reversed(enumerate(self.ups)):
+        for i, up in reversed(list(enumerate(self.ups))):
             x = up(x, xs[i])
 
 #        x1 = self.inc(x)
@@ -111,4 +111,4 @@ class UNet(nn.Module):
 #        x = self.up3(x, x2)
 #        x = self.up4(x, x1)
         x = self.outc(x)
-        return F.sigmoid(x)
+        return torch.sigmoid(x)
