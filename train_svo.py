@@ -4,7 +4,9 @@ import numpy as np
 import json
 import cv2
 import torch
-
+from h5gen import h5generate
+from torch.nn import BCELoss
+from torch.optim import Adam
 
 print('PyTorch version: ', torch.__version__)
 USE_CUDA = torch.cuda.is_available()
@@ -35,13 +37,21 @@ def main():
     base_dir = config['svo_dir']
     batch = config['svo_batch']
     model = UNet(**config['unet']).to(device)
-    cuts = {}
-    load(cuts, base_dir=base_dir)
-    for x, target in generate(cuts, {0: batch, 1: batch}, device=device, base_dir=base_dir):
-        # y = model(x)
-        show_images(x, 'x')
-        # show_images(y, 'y')
+    # cuts = {}
+    # load(cuts, base_dir=base_dir)
+    loss_f = BCELoss()
+    opt = Adam(model.parameters(), lr=1e-4)
+    for i, (x, target) in enumerate(h5generate(batch, [0, 1], device=device)):
+        opt.zero_grad()
+        y = model(x)
+        loss = loss_f(y, target)
+        loss.backward()
+        opt.step()
+        show_images(x, 'input')
+        show_images(y, 'output')
         show_images(target, 'target')
+        if i % 100 == 0:
+            torch.save(model.state_dict(), 'models/unet1.pt')
         key = cv2.waitKey(1)
 
 
