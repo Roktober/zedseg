@@ -5,7 +5,7 @@ from random import choice, randrange
 from scipy.ndimage.interpolation import rotate, geometric_transform, affine_transform
 
 
-def augmentate(image, resolution):
+def augment(image, resolution):
     # affine_transform()
     # geometric_transform()
     return image
@@ -33,7 +33,7 @@ def h5generate(batch=4, classes=None, channels=3, source='cuts.h5', resolution=(
                 for o in range(gi * batch, (gi + 1) * batch):
                     cut = group[choice(list(group))]
                     image = cut[randrange(cut.shape[0])].astype(np.float32) / 255
-                    result = torch.tensor(augmentate(image, resolution), device=device)
+                    result = torch.tensor(augment(image, resolution), device=device)
                     input_batch[o] = result
             yield input_batch, output_batch
 

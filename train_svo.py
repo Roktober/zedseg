@@ -8,9 +8,9 @@ from h5gen import h5generate
 from torch.nn import BCELoss
 from torch.optim import Adam
 
-print('PyTorch version: ', torch.__version__)
+print('PyTorch version:', torch.__version__)
 USE_CUDA = torch.cuda.is_available()
-print('Use CUDA: ', torch.version.cuda if USE_CUDA else False)
+print('Use CUDA:', torch.version.cuda if USE_CUDA else False)
 device = torch.device('cuda' if USE_CUDA else 'cpu')
 
 
@@ -37,6 +37,7 @@ def main():
     base_dir = config['svo_dir']
     batch = config['svo_batch']
     model = UNet(**config['unet']).to(device)
+    model.train()
     # cuts = {}
     # load(cuts, base_dir=base_dir)
     loss_f = BCELoss()
@@ -50,9 +51,11 @@ def main():
         show_images(x, 'input')
         show_images(y, 'output')
         show_images(target, 'target')
-        if i % 100 == 0:
-            torch.save(model.state_dict(), 'models/unet1.pt')
         key = cv2.waitKey(1)
+        if key == ord('s'):
+            torch.save(model.state_dict(), 'models/unet2.pt')
+        elif key == ord('q'):
+            break
 
 
 if __name__ == "__main__":
