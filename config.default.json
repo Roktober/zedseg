@@ -1,7 +1,7 @@
 {
   "unet": {
     "n_channels": 3,
-    "n_classes": 2,
+    "n_classes": 6,
     "downs": [
       [64, 2],
       [128, 2],
@@ -17,5 +17,6 @@
     ]
   },
   "svo_dir": "svo",
-  "svo_batch": 4
+  "svo_batch": 4,
+  "with_gui": false
 }

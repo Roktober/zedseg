@@ -4,15 +4,10 @@ import numpy as np
 import json
 import cv2
 import torch
-from utils import channels, probs_to_image
+from utils import channels, probs_to_image, get_device
 from gen import h5_generate, png_generate, comb_generate
 from torch.nn import BCELoss
 from torch.optim import Adam
-
-print('PyTorch version:', torch.__version__)
-USE_CUDA = torch.cuda.is_available()
-print('Use CUDA:', torch.version.cuda if USE_CUDA else False)
-device = torch.device('cuda' if USE_CUDA else 'cpu')
 
 
 def show_images(image_torch, name, is_mask=False):
@@ -35,31 +30,45 @@ def show_images(image_torch, name, is_mask=False):
 
 
 def main():
+    device = get_device()
     with open('config.json', 'r') as f:
         config = json.load(f)
-    base_dir = config['svo_dir']
-    batch = config['svo_batch']
+    base_dir, batch, with_gui, epoch_images = map(config.get, ['svo_dir', 'svo_batch', 'with_gui', 'epoch_images'])
     assert len(channels) == config['unet']['n_classes']
     model = UNet(**config['unet']).to(device)
     model.train()
-    # cuts = {}
-    # load(cuts, base_dir=base_dir)
     loss_f = BCELoss()
     opt = Adam(model.parameters(), lr=1e-4)
+    pause = False
+    images, count, loss_sum, epoch = 0, 0, 0, 1
     for x, target in comb_generate(h5_generate(batch, [0, 1]), png_generate(), device=device):
         opt.zero_grad()
         y = model(x)
         loss = loss_f(y, target)
+        loss_sum += loss.item()
+        count += 1
+        images += len(x)
         loss.backward()
         opt.step()
-        show_images(x, 'input')
-        show_images(y, 'output', is_mask=True)
-        show_images(target, 'target', is_mask=True)
-        key = cv2.waitKey(1)
-        if key == ord('s'):
-            torch.save(model.state_dict(), 'models/unet2.pt')
-        elif key == ord('q'):
-            break
+        if with_gui:
+            if not pause:
+                show_images(x, 'input')
+                show_images(y[:, :, ::2, ::2], 'output', is_mask=True)
+                show_images(target[:, :, ::2, ::2], 'target', is_mask=True)
+            key = cv2.waitKey(1)
+            if key == ord('s'):
+                torch.save(model.state_dict(), 'models/unet2.pt')
+            elif key == ord('p'):
+                pause = not pause
+            elif key == ord('q'):
+                break
+        if images >= epoch_images:
+            msg = 'Epoch %d: train loss %f' % (epoch, loss_sum / count)
+            print(msg)
+            count = 0
+            images = 0
+            loss_sum = 0
+            epoch += 1
 
 
 if __name__ == "__main__":

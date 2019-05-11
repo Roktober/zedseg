@@ -9,7 +9,7 @@ import cv2
 from read_svo import read_svo
 from os.path import join, isfile, isdir
 from os import mkdir
-from utils import probs_to_image, visualize
+from utils import probs_to_image, visualize, image_to_tensor
 
 
 print('PyTorch version:', torch.__version__)
@@ -52,13 +52,9 @@ def main(files=None, show=True, images_dir='images', image_fmt='%.3d.png'):
     with torch.no_grad():
         for fn in files:
             for source in read_svo(fn):
-                # if show:
-                #    cv2.imshow('input', source)
-                data = np.moveaxis(source, -1, 0).astype(np.float32) / 255
-                data = model(torch.tensor(data, device=device).unsqueeze(0))  # [:, :2]
+                data = image_to_tensor(source)
+                data = model(data).squeeze(0)  # [:, :2]
                 result = probs_to_image(data)
-                # data = np.moveaxis((data.detach().squeeze(0).cpu().numpy() * 255).astype(np.uint8), 0, -1)
-                # data = np.concatenate((data, np.zeros(data.shape[:2] + (1,), dtype=np.uint8)), axis=2)
                 if show:
                     # mix = source
                     # mix[data[..., 0] < data[..., 1], 1] = 200

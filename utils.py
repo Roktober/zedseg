@@ -12,7 +12,7 @@ channels = [
 
 
 def visualize(source: np.ndarray, result: np.ndarray): # (height, width, 3)
-    return source | result
+    return source | (result & 192)
 
 
 def probs_to_image(probs: torch.Tensor):    # probs: (channels, height, width) [0, 1]
@@ -34,3 +34,18 @@ def image_to_probs(image: np.ndarray, device=None):
         result[..., channel, :, :] = mask
     result[0, result.any(dim=-3) == 0] = 1
     return result.to(torch.float32)
+
+
+def image_to_tensor(image: np.ndarray, device=None):
+    data = np.moveaxis(image, -1, -3).astype(np.float32) / 255
+    data = torch.tensor(data, device=device)
+    if len(data.shape) < 4:
+        data = data.unsqueeze(0)
+    return data
+
+
+def get_device():
+    print('PyTorch version:', torch.__version__)
+    USE_CUDA = torch.cuda.is_available()
+    print('Use CUDA:', torch.version.cuda if USE_CUDA else False)
+    return torch.device('cuda' if USE_CUDA else 'cpu')

@@ -26,13 +26,15 @@ def comb_generate(*gens, shape=(8, len(channels), 320, 320), device=None, input_
         VerticalFlip(p=0.5),
         RandomRotate90(p=0.5),
         OneOf([
-            ElasticTransform(p=0.5, alpha=12, sigma=12 * 0.05, alpha_affine=12 * 0.03),
+            # ElasticTransform(p=0.5, alpha=12, sigma=12 * 0.05, alpha_affine=12 * 0.03),
             GridDistortion(p=0.5, distort_limit=0.1),
             OpticalDistortion(p=1, distort_limit=0.2, shift_limit=0.2)
         ], p=0.8),
         CLAHE(p=0.8),
         RandomBrightnessContrast(p=0.8),
-        RandomGamma(p=0.8)])
+        RandomGamma(p=0.8)
+    ])
+
     xr = torch.empty((shape[0], input_channels) + shape[2:], dtype=torch.float32, device=device)
     yr = torch.empty(shape, dtype=torch.float32, device=device)
     for samples in zip(*gens):
