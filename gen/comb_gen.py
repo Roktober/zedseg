@@ -35,13 +35,17 @@ def comb_generate(*gens, shape=(8, len(channels), 320, 320), device=None, input_
         RandomGamma(p=0.8)
     ])
 
-    xr = torch.empty((shape[0], input_channels) + shape[2:], dtype=torch.float32, device=device)
-    yr = torch.empty(shape, dtype=torch.float32, device=device)
+    xr = None
+    yr = None
     for samples in zip(*gens):
         xs, ys = zip(*samples)
         xs = sum([list(a) for a in xs], [])
         ys = sum([list(a) for a in ys], [])
-        assert shape[0] == len(xs) == len(ys)
+        if xr is None:
+            xr = torch.empty((len(xs), input_channels) + shape[2:], dtype=torch.float32, device=device)
+        if yr is None:
+            yr = torch.empty((len(ys),) + shape[-3:], dtype=torch.float32, device=device)
+        # assert shape[0] == len(xs) == len(ys)
         for b, (x, y) in enumerate(zip(xs, ys)):
             augmented = aug(image=x, mask=y)
             x, y = map(augmented.get, ['image', 'mask'])

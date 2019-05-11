@@ -33,7 +33,7 @@ def main():
     device = get_device()
     with open('config.json', 'r') as f:
         config = json.load(f)
-    base_dir, batch, with_gui, epoch_images = map(config.get, ['svo_dir', 'svo_batch', 'with_gui', 'epoch_images'])
+    base_dir, svo_batch, png_batch, with_gui, epoch_images = map(config.get, ['svo_dir', 'svo_batch', 'png_batch', 'with_gui', 'epoch_images'])
     assert len(channels) == config['unet']['n_classes']
     model = UNet(**config['unet']).to(device)
     model.train()
@@ -41,7 +41,8 @@ def main():
     opt = Adam(model.parameters(), lr=1e-4)
     pause = False
     images, count, loss_sum, epoch = 0, 0, 0, 1
-    for x, target in comb_generate(h5_generate(batch, [0, 1]), png_generate(), device=device):
+    for x, target in comb_generate(h5_generate(svo_batch, [0, 1]), png_generate(png_batch),
+                                   shape=(svo_batch + png_batch, len(channels), 320, 320), device=device):
         opt.zero_grad()
         y = model(x)
         loss = loss_f(y, target)

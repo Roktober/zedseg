@@ -18,5 +18,6 @@
   },
   "svo_dir": "svo",
   "svo_batch": 4,
+  "png_batch": 2,
   "with_gui": false
 }
