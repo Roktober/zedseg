@@ -9,7 +9,7 @@ import cv2
 from read_svo import read_svo
 from os.path import join, isfile, isdir
 from os import mkdir
-from utils import probs_to_image
+from utils import probs_to_image, visualize
 
 
 print('PyTorch version:', torch.__version__)
@@ -30,7 +30,7 @@ def get_save_idx(images_dir='images', image_fmt='%3d.png'):
     return n
 
 
-def main(files=None, show=True, images_dir='images', image_fmt='%3d.png'):
+def main(files=None, show=True, images_dir='images', image_fmt='%.3d.png'):
     with open('config.json', 'r') as f:
         config = json.load(f)
     base_dir = config['svo_dir']
@@ -62,7 +62,7 @@ def main(files=None, show=True, images_dir='images', image_fmt='%3d.png'):
                 if show:
                     # mix = source
                     # mix[data[..., 0] < data[..., 1], 1] = 200
-                    cv2.imshow('output', result)
+                    cv2.imshow('output', visualize(source, result))
                     while True:
                         key = cv2.waitKey(1)
                         if key == ord('p'):
