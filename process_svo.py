@@ -1,6 +1,6 @@
 import json
 import torch
-from unet import UNet
+from model import UNet
 from os import listdir
 from os.path import join, isfile
 import pyzed.sl as sl

@@ -1,6 +1,6 @@
-from unet import UNet, UNetLayerInfo
-from csv_cut import load, generate
+from model import UNet
 import numpy as np
+import time
 import json
 import cv2
 import torch
@@ -29,11 +29,15 @@ def show_images(image_torch, name, is_mask=False):
     cv2.imshow(name, result)
 
 
-def main():
+def main(with_gui=None):
     device = get_device()
     with open('config.json', 'r') as f:
         config = json.load(f)
-    base_dir, svo_batch, png_batch, with_gui, epoch_images = map(config.get, ['svo_dir', 'svo_batch', 'png_batch', 'with_gui', 'epoch_images'])
+    base_dir, svo_batch, png_batch, epoch_images = map(config.get, [
+        'svo_dir', 'svo_batch', 'png_batch', 'epoch_images'
+    ])
+    if with_gui is None:
+        with_gui = config.get('with_gui')
     assert len(channels) == config['unet']['n_classes']
     model = UNet(**config['unet']).to(device)
     model.train()
@@ -64,7 +68,7 @@ def main():
             elif key == ord('q'):
                 break
         if images >= epoch_images:
-            msg = 'Epoch %d: train loss %f' % (epoch, loss_sum / count)
+            msg = '%s Epoch %d: train loss %f' % (time.strftime('%Y-%m-%d %H:%M:%S'), epoch, loss_sum / count)
             print(msg)
             count = 0
             images = 0

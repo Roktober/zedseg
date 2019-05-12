@@ -44,6 +44,11 @@ def image_to_tensor(image: np.ndarray, device=None):
     return data
 
 
+def calc_accuracy(result: torch.Tensor, target: torch.Tensor):
+    ri = torch.argmax(result, dim=-3)
+    rt = torch.argmax(target, dim=-3)
+
+
 def get_device():
     print('PyTorch version:', torch.__version__)
     USE_CUDA = torch.cuda.is_available()
