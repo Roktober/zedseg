@@ -10,7 +10,7 @@ from read_svo import read_svo
 from os.path import join, isfile, isdir
 from os import mkdir
 from utils import probs_to_image, visualize, image_to_tensor
-
+from model import load_model
 
 print('PyTorch version:', torch.__version__)
 USE_CUDA = torch.cuda.is_available()
@@ -34,10 +34,7 @@ def main(files=None, show=True, images_dir='images', image_fmt='%.3d.png'):
     with open('config.json', 'r') as f:
         config = json.load(f)
     base_dir = config['svo_dir']
-    model = UNet(**config['unet'])
-    model.load_state_dict(torch.load('models/unet2.pt'))
-    model.eval()
-    model = model.to(device)
+    model = load_model(config['model'], device=device)
     if files is None:
         files = [
             join(base_dir, 'sar', fn)
@@ -52,7 +49,7 @@ def main(files=None, show=True, images_dir='images', image_fmt='%.3d.png'):
     with torch.no_grad():
         for fn in files:
             for source in read_svo(fn):
-                data = image_to_tensor(source)
+                data = image_to_tensor(source, device=device)
                 data = model(data).squeeze(0)  # [:, :2]
                 result = probs_to_image(data)
                 if show:

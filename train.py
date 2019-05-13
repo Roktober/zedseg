@@ -5,6 +5,7 @@ import json
 import cv2
 import torch
 from utils import channels, probs_to_image, get_device, check_accuracy, acc_to_str
+from model import load_model
 from gen import h5_generate, png_generate, comb_generate
 from torch.nn import BCELoss
 from torch.optim import Adam
@@ -33,14 +34,12 @@ def main(with_gui=None):
     device = get_device()
     with open('config.json', 'r') as f:
         config = json.load(f)
-    base_dir, svo_batch, png_batch, epoch_images = map(config.get, [
-        'svo_dir', 'svo_batch', 'png_batch', 'epoch_images'
+    base_dir, svo_batch, png_batch, epoch_images, model_name = map(config.get, [
+        'svo_dir', 'svo_batch', 'png_batch', 'epoch_images', 'model'
     ])
     if with_gui is None:
         with_gui = config.get('with_gui')
-    assert len(channels) == config['unet']['n_classes']
-    model = UNet(**config['unet']).to(device)
-    model.train()
+    model = load_model(model_name, device=device)
     loss_f = BCELoss()
     opt = Adam(model.parameters(), lr=1e-4)
     pause = False

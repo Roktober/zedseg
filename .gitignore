@@ -2,3 +2,4 @@ cuts.h5
 config.json
 svo
 .idea
+**/__pycache__
