@@ -10,6 +10,8 @@ channels = [
     (0, 1, 1)   # Bush, yellow
 ]
 
+channel_names = ['ground', 'tree', 'tower', 'wire', 'copter', 'bush']
+
 
 def visualize(source: np.ndarray, result: np.ndarray): # (height, width, 3)
     return source | (result & 192)
@@ -44,9 +46,29 @@ def image_to_tensor(image: np.ndarray, device=None):
     return data
 
 
-def calc_accuracy(result: torch.Tensor, target: torch.Tensor):
-    ri = torch.argmax(result, dim=-3)
-    rt = torch.argmax(target, dim=-3)
+def check_accuracy(result: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+    values, indexes = result.max(dim=-3, keepdim=True)
+    result = result == values
+    target = target > 0
+    target_size = target.shape[-3]
+    mat = torch.empty((target_size, result.shape[-3]), dtype=torch.int64)
+    for i in range(target_size):
+        row = (result * target[..., i:i + 1, :, :]).sum((-2, -1))
+        while len(row.shape) > 1:
+            row = row.sum(0)
+        mat[i] = row
+    return mat
+
+
+def acc_to_str(acc: torch.Tensor) -> str:
+    result = []
+    for i, name in enumerate(channel_names):
+        item = acc[i, i].item()
+        target_sum = acc[i].sum().item()
+        result_sum = acc[:, i].sum().item()
+        t, r = tuple('%.1f%%' % (item / s * 100) if s > 0 else '???' for s in [target_sum, result_sum])
+        result.append('%s +%s, -%s' % (name, t, r))
+    return '; '.join(result)
 
 
 def get_device():

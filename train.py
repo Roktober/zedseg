@@ -4,7 +4,7 @@ import time
 import json
 import cv2
 import torch
-from utils import channels, probs_to_image, get_device
+from utils import channels, probs_to_image, get_device, check_accuracy, acc_to_str
 from gen import h5_generate, png_generate, comb_generate
 from torch.nn import BCELoss
 from torch.optim import Adam
@@ -44,11 +44,12 @@ def main(with_gui=None):
     loss_f = BCELoss()
     opt = Adam(model.parameters(), lr=1e-4)
     pause = False
-    images, count, loss_sum, epoch = 0, 0, 0, 1
+    images, count, loss_sum, epoch, acc_mat = 0, 0, 0, 1, 0
     for x, target in comb_generate(h5_generate(svo_batch, [0, 1]), png_generate(png_batch),
                                    shape=(svo_batch + png_batch, len(channels), 320, 320), device=device):
         opt.zero_grad()
         y = model(x)
+        acc_mat += check_accuracy(y, target)
         loss = loss_f(y, target)
         loss_sum += loss.item()
         count += 1
@@ -68,12 +69,17 @@ def main(with_gui=None):
             elif key == ord('q'):
                 break
         if images >= epoch_images:
-            msg = '%s Epoch %d: train loss %f' % (time.strftime('%Y-%m-%d %H:%M:%S'), epoch, loss_sum / count)
+            msg = '%s Epoch %d: train loss %f, acc %s' % (
+                time.strftime('%Y-%m-%d %H:%M:%S'),
+                epoch, loss_sum / count,
+                acc_to_str(acc_mat)
+            )
             print(msg)
             count = 0
             images = 0
             loss_sum = 0
             epoch += 1
+            acc_mat[:] = 0
 
 
 if __name__ == "__main__":
