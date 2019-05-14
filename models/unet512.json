@@ -1,4 +1,5 @@
 {
+  "type": "unet",
   "n_channels": 3,
   "n_classes": 6,
   "downs": [

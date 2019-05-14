@@ -3,3 +3,4 @@ config.json
 svo
 .idea
 **/__pycache__
+models/*/
