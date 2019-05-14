@@ -20,9 +20,9 @@ from albumentations import (
 )
 
 
-def comb_generate(*gens, shape=(8, len(channels), 320, 320), device=None, input_channels=3):
+def comb_generate(gens, resolution=(320, 320), device=None, input_channels=3):
     aug = Compose([
-        RandomSizedCrop(min_max_height=(200, 320), height=shape[-2], width=shape[-1], p=1.0),
+        RandomSizedCrop(min_max_height=(200, 320), height=resolution[0], width=resolution[1], p=1.0),
         VerticalFlip(p=0.5),
         RandomRotate90(p=0.5),
         OneOf([
@@ -42,9 +42,9 @@ def comb_generate(*gens, shape=(8, len(channels), 320, 320), device=None, input_
         xs = sum([list(a) for a in xs], [])
         ys = sum([list(a) for a in ys], [])
         if xr is None:
-            xr = torch.empty((len(xs), input_channels) + shape[2:], dtype=torch.float32, device=device)
+            xr = torch.empty((len(xs), input_channels) + resolution, dtype=torch.float32, device=device)
         if yr is None:
-            yr = torch.empty((len(ys),) + shape[-3:], dtype=torch.float32, device=device)
+            yr = torch.empty((len(ys), len(channels)) + resolution, dtype=torch.float32, device=device)
         # assert shape[0] == len(xs) == len(ys)
         for b, (x, y) in enumerate(zip(xs, ys)):
             augmented = aug(image=x, mask=y)

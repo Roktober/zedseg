@@ -1,14 +1,24 @@
-from model import UNet
 import numpy as np
 import time
 import json
 import cv2
 import torch
 from utils import channels, probs_to_image, get_device, check_accuracy, acc_to_str
-from model import load_model
-from gen import h5_generate, png_generate, comb_generate
+from model import load_model, save_model
+from gen import create_generator
+from collections import namedtuple
 from torch.nn import BCELoss
-from torch.optim import Adam
+from torch.optim import Adam, SGD, Adagrad, Adadelta, RMSprop
+from os.path import join, isdir
+from os import mkdir
+
+optimizers = {
+    'adam': Adam,
+    'sgd': SGD,
+    'adagrad': Adagrad,
+    'adadelta': Adadelta,
+    'rmsprop': RMSprop
+}
 
 
 def show_images(image_torch, name, is_mask=False):
@@ -30,31 +40,72 @@ def show_images(image_torch, name, is_mask=False):
     cv2.imshow(name, result)
 
 
-def main(with_gui=None):
-    device = get_device()
+Config = namedtuple('Config', 'device model generator optimizer train')
+
+
+def load_config() -> Config:
     with open('config.json', 'r') as f:
         config = json.load(f)
-    base_dir, svo_batch, png_batch, epoch_images, model_name = map(config.get, [
-        'svo_dir', 'svo_batch', 'png_batch', 'epoch_images', 'model'
-    ])
+    return Config(*map(config.get, Config._fields))
+
+
+def create_optimizer(config, model):
+    return optimizers[config['type']](model.parameters(), **{k: v for k, v in config.items() if k != 'type'})
+
+
+def log(name, msg):
+    t = time.strftime('%Y-%m-%d %H:%M:%S'), msg
+    print('%s %s' % t)
+    with open(join('models', name, 'log.txt'), 'a') as f:
+        f.write('%s %s\n' % t)
+
+
+def main(with_gui=None, check_stop=None):
+    device_idx, model_name, generator_cfg, _, train_cfg = load_config()
+    device = get_device()
     if with_gui is None:
-        with_gui = config.get('with_gui')
-    model = load_model(model_name, device=device)
+        with_gui = train_cfg.get('with_gui')
+    model = None
     loss_f = BCELoss()
-    opt = Adam(model.parameters(), lr=1e-4)
     pause = False
     images, count, loss_sum, epoch, acc_mat = 0, 0, 0, 1, 0
-    for x, target in comb_generate(h5_generate(svo_batch, [0, 1]), png_generate(png_batch),
-                                   shape=(svo_batch + png_batch, len(channels), 320, 320), device=device):
-        opt.zero_grad()
+    generator, generator_cfg = None, None
+    optimizer, optimizer_cfg = None, None
+    best_loss = None
+    while check_stop is None or not check_stop():
+
+        # Check config:
+        if images == 0:
+            cfg = load_config()
+            if model_name != cfg.model or model is None:
+                model_name = cfg.model
+                model, best_loss, epoch = load_model(model_name, train=True, device=device)
+                log(model_name, 'Loaded model %s' % model_name)
+                optimizer_cfg = None
+            if optimizer_cfg != cfg.optimizer:
+                optimizer_cfg = cfg.optimizer
+                optimizer = create_optimizer(optimizer_cfg, model)
+                log(model_name, 'Created optimizer %s' % str(optimizer))
+            if generator_cfg != cfg.generator:
+                generator_cfg = cfg.generator
+                generator = create_generator(generator_cfg, device=device)
+                log(model_name, 'Created generator')
+            train_cfg = cfg.train
+
+        # Optimize:
+        x, target = next(generator)
+        optimizer.zero_grad()
         y = model(x)
         acc_mat += check_accuracy(y, target)
         loss = loss_f(y, target)
-        loss_sum += loss.item()
+        loss_item = loss.item()
+        loss_sum += loss_item
         count += 1
         images += len(x)
         loss.backward()
-        opt.step()
+        optimizer.step()
+
+        # GUI:
         if with_gui:
             if not pause:
                 show_images(x, 'input')
@@ -67,18 +118,22 @@ def main(with_gui=None):
                 pause = not pause
             elif key == ord('q'):
                 break
-        if images >= epoch_images:
-            msg = '%s Epoch %d: train loss %f, acc %s' % (
-                time.strftime('%Y-%m-%d %H:%M:%S'),
+
+        # Complete epoch:
+        if images >= train_cfg['epoch_images']:
+            msg = 'Epoch %d: train loss %f, acc %s' % (
                 epoch, loss_sum / count,
                 acc_to_str(acc_mat)
             )
-            print(msg)
+            log(model_name, msg)
             count = 0
             images = 0
             loss_sum = 0
             epoch += 1
             acc_mat[:] = 0
+            save_model(model_name, model, best_loss, epoch)
+
+    log(model_name, 'Stopped\n')
 
 
 if __name__ == "__main__":

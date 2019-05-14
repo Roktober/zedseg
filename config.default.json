@@ -1,23 +1,27 @@
 {
-  "unet": {
-    "n_channels": 3,
-    "n_classes": 6,
-    "downs": [
-      [64, 2],
-      [128, 2],
-      [256, 2],
-      [512, 2],
-      [512, null]
-    ],
-    "ups": [
-      [64, 2],
-      [64, 2],
-      [128, 2],
-      [256, 2]
+  "device": 0,
+  "model": "unet512",
+  "generator": {
+    "type": "combo",
+    "resolution": [320, 320],
+    "items": [
+      {
+        "type": "png",
+        "batch": 2
+      },
+      {
+        "type": "h5",
+        "batch": 2,
+        "classes": [0, 1]
+      }
     ]
   },
-  "svo_dir": "svo",
-  "svo_batch": 4,
-  "png_batch": 2,
-  "with_gui": false
+  "optimizer": {
+    "type": "adam",
+    "lr": 1e-4
+  },
+  "train": {
+    "with_gui": true,
+    "epoch_images": 64
+  }
 }

@@ -12,7 +12,7 @@ class TrainServerSvc (win32serviceutil.ServiceFramework):
     _svc_name_ = "ZedSegTrain"
     _svc_display_name_ = "Train ZED segmentation"
 
-    def __init__(self,args):
+    def __init__(self, args):
         win32serviceutil.ServiceFramework.__init__(self, args)
         self.hWaitStop = win32event.CreateEvent(None, 0, 0, None)
         socket.setdefaulttimeout(60)
@@ -27,12 +27,14 @@ class TrainServerSvc (win32serviceutil.ServiceFramework):
                               (self._svc_name_, ''))
         self.main()
 
-    @staticmethod
-    def main():
+    def check_stop(self):
+        return win32event.WaitForSingleObject(self.hWaitStop, 0) == win32event.WAIT_OBJECT_0
+
+    def main(self):
         work_dir = dirname(abspath(__file__))
         chdir(work_dir)
         servicemanager.LogInfoMsg('Module directory is %s' % work_dir)
-        train_main(with_gui=False)
+        train_main(with_gui=False, check_stop=self.check_stop)
 
 
 if __name__ == '__main__':
