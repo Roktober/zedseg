@@ -3,6 +3,7 @@ import win32service
 import win32event
 import servicemanager
 import socket
+import traceback
 from train import main as train_main
 from os import mkdir, chdir
 from os.path import abspath, dirname
@@ -25,7 +26,11 @@ class TrainServerSvc (win32serviceutil.ServiceFramework):
         servicemanager.LogMsg(servicemanager.EVENTLOG_INFORMATION_TYPE,
                               servicemanager.PYS_SERVICE_STARTED,
                               (self._svc_name_, ''))
-        self.main()
+        try:
+            self.main()
+        except Exception as e:
+            servicemanager.LogErrorMsg('Exception %s' % str(e))
+            servicemanager.LogErrorMsg(traceback.format_exc())
 
     def check_stop(self):
         return win32event.WaitForSingleObject(self.hWaitStop, 0) == win32event.WAIT_OBJECT_0
