@@ -1,13 +1,14 @@
+import re
 import json
 import torch
-from model import UNet
+from argparse import ArgumentParser
 from os import listdir
-from os.path import join, isfile
+from os.path import join, isfile, isdir
 import pyzed.sl as sl
 import numpy as np
 import cv2
 from read_svo import read_svo
-from os.path import join, isfile, isdir
+from os.path import join, isfile, isdir, basename
 from os import mkdir
 from utils import probs_to_image, visualize, image_to_tensor
 from model import load_model
@@ -30,32 +31,66 @@ def get_save_idx(images_dir='images', image_fmt='%3d.png'):
     return n
 
 
-def main(files=None, show=True, images_dir='images', image_fmt='%.3d.png'):
-    with open('config.json', 'r') as f:
-        config = json.load(f)
-    base_dir = config['svo_dir']
-    model = load_model(config['model'], device=device)
-    if files is None:
-        files = [
-            join(base_dir, 'sar', fn)
-            for fn in listdir(join(base_dir, 'sar'))
-            if isfile(join(base_dir, 'sar', fn)) and fn.endswith('.svo')
-        ]
+def file_idx(fn):
+    result = re.search('-(\\d+)\\.svo$', fn)
+    return None if result is None else int(result.group(1))
 
-    runtime = sl.RuntimeParameters()
-    mat = sl.Mat()
+
+def main(show=True, images_dir='images', image_fmt='%.3d.png'):
+    parser = ArgumentParser(description='Process .svo files')
+    parser.add_argument('input', type=str, help='Input directory or file')
+    parser.add_argument('output', type=str, nargs='?', default=None, help='Output directory or file')
+    parser.add_argument('-m', type=str, required=False, help='Model to process with')
+    parser.add_argument('-r', type=int, required=False, default=1, help='Reduce factor')
+    parser.add_argument('-v', action='store_true', required=False, default=False, help='Mix processed with input')
+    args = parser.parse_args()
+
+    model = None if args.m is None else load_model(args.m, device=device)[0]
+
+    if isdir(args.input):
+        files = sorted([
+            join(args.input, fn)
+            for fn in listdir(args.input)
+            if isfile(join(args.input, fn)) and fn.endswith('.svo')
+        ], key=file_idx)
+    elif isfile(args.input):
+        files = [args.input]
+    else:
+        print('No such file or directory: %s' % args.input)
+        return
+
     pause = False
     save_idx = get_save_idx(images_dir, image_fmt)
+
+    out_path = args.output
+    writer = None
+    to_dir = False if out_path is None else isdir(out_path)
     with torch.no_grad():
         for fn in files:
+            print('Processing %s' % fn)
             for source in read_svo(fn):
-                data = image_to_tensor(source, device=device)
-                data = model(data).squeeze(0)  # [:, :2]
-                result = probs_to_image(data)
-                if show:
-                    # mix = source
-                    # mix[data[..., 0] < data[..., 1], 1] = 200
-                    cv2.imshow('output', visualize(source, result))
+
+                # Processing:
+                if model is not None:
+                    data = image_to_tensor(source, device=device)
+                    data = model(data).squeeze(0)  # [:, :2]
+                    result = probs_to_image(data)
+                    output = visualize(source, result) if args.v else result
+                else:
+                    output = source
+
+                # Open writer:
+                if writer is None and out_path is not None:
+                    dst = join(out_path, basename(fn)[:-3] + 'avi') if to_dir else out_path
+                    print('Write to %s' % dst)
+                    writer = cv2.VideoWriter(dst, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'),
+                                             10, tuple(reversed(output.shape[:2])))
+
+                # Return output:
+                if writer is not None:
+                    writer.write(output)
+                else:
+                    cv2.imshow('output', output)
                     while True:
                         key = cv2.waitKey(1)
                         if key == ord('p'):
@@ -67,6 +102,11 @@ def main(files=None, show=True, images_dir='images', image_fmt='%.3d.png'):
                             save_idx += 1
                         if not pause:
                             break
+            if to_dir and writer is not None:
+                writer.release()
+                writer = None
+        if writer is not None:
+            writer.release()
 
 
 if __name__ == "__main__":
