@@ -43,6 +43,7 @@ def main(show=True, images_dir='images', image_fmt='%.3d.png'):
     parser.add_argument('-m', type=str, required=False, help='Model to process with')
     parser.add_argument('-r', type=int, required=False, default=1, help='Reduce factor')
     parser.add_argument('-v', action='store_true', required=False, default=False, help='Mix processed with input')
+    parser.add_argument('-f', type=str, required=False, default='avc1', help='FOURCC code')
     args = parser.parse_args()
 
     model = None if args.m is None else load_model(args.m, device=device)[0]
@@ -65,6 +66,7 @@ def main(show=True, images_dir='images', image_fmt='%.3d.png'):
     out_path = args.output
     writer = None
     to_dir = False if out_path is None else isdir(out_path)
+    out_height, out_width = None, None
     with torch.no_grad():
         for fn in files:
             print('Processing %s' % fn)
@@ -79,12 +81,17 @@ def main(show=True, images_dir='images', image_fmt='%.3d.png'):
                 else:
                     output = source
 
+                if out_height is None:
+                    out_height, out_width = map(lambda s: s // args.r, output.shape[:2])
+                if args.r != 1:
+                    output = cv2.resize(output, (out_width, out_height))
+
                 # Open writer:
                 if writer is None and out_path is not None:
-                    dst = join(out_path, basename(fn)[:-3] + 'avi') if to_dir else out_path
+                    dst = join(out_path, basename(fn)[:-3] + 'mp4') if to_dir else out_path
                     print('Write to %s' % dst)
-                    writer = cv2.VideoWriter(dst, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'),
-                                             10, tuple(reversed(output.shape[:2])))
+                    writer = cv2.VideoWriter(dst, cv2.VideoWriter_fourcc(*args.f),
+                                             10, (out_width, out_height))
 
                 # Return output:
                 if writer is not None:
@@ -95,11 +102,13 @@ def main(show=True, images_dir='images', image_fmt='%.3d.png'):
                         key = cv2.waitKey(1)
                         if key == ord('p'):
                             pause = not pause
-                        if key == ord('s'):
+                        elif key == ord('s'):
                             result = probs_to_image(data)
                             cv2.imwrite(join('images', 'saved-in', image_fmt % save_idx), source)
                             cv2.imwrite(join('images', 'saved-out', image_fmt % save_idx), result)
                             save_idx += 1
+                        elif key == ord('q'):
+                            return
                         if not pause:
                             break
             if to_dir and writer is not None:
