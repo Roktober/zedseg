@@ -1,16 +1,14 @@
 import numpy as np
 import time
-import json
 import cv2
 import torch
-from utils import channels, probs_to_image, get_device, check_accuracy, acc_to_str
+from utils import channels, probs_to_image, get_device, check_accuracy, acc_to_str, load_config
 from model import load_model, save_model
 from gen import create_generator
-from collections import namedtuple
 from torch.nn import BCELoss
 from torch.optim import Adam, SGD, Adagrad, Adadelta, RMSprop
 from os.path import join, isdir
-from os import mkdir
+
 
 optimizers = {
     'adam': Adam,
@@ -38,15 +36,6 @@ def show_images(image_torch, name, is_mask=False):
         for x in range(w):
             result[y * ih:y * ih + ih, x * iw:x * iw + iw] = image[y * w + x]
     cv2.imshow(name, result)
-
-
-Config = namedtuple('Config', 'device model generator optimizer train')
-
-
-def load_config() -> Config:
-    with open('config.json', 'r') as f:
-        config = json.load(f)
-    return Config(*map(config.get, Config._fields))
 
 
 def create_optimizer(config, model):

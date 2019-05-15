@@ -1,5 +1,8 @@
+import json
 import torch
 import numpy as np
+from collections import namedtuple
+
 
 channels = [
     (0, 0, 0),  # Ground, black
@@ -76,3 +79,12 @@ def get_device():
     USE_CUDA = torch.cuda.is_available()
     print('Use CUDA:', torch.version.cuda if USE_CUDA else False)
     return torch.device('cuda' if USE_CUDA else 'cpu')
+
+
+Config = namedtuple('Config', 'device model generator optimizer train')
+
+
+def load_config() -> Config:
+    with open('config.json', 'r') as f:
+        config = json.load(f)
+    return Config(*map(config.get, Config._fields))

@@ -1,21 +1,11 @@
 import json
 import torch
-from model import UNet
+from model import load_model
 from os import listdir
 from os.path import join, isfile
 from argparse import ArgumentParser
-from utils import image_to_tensor, get_device, probs_to_image
+from utils import image_to_tensor, get_device, probs_to_image, load_config
 from cv2 import imread, imwrite
-
-
-def load_model(device):
-    with open('config.json', 'r') as f:
-        config = json.load(f)
-    base_dir = config['svo_dir']
-    model = UNet(**config['unet'])
-    model.load_state_dict(torch.load('models/unet2.pt'))
-    model.eval()
-    return model.to(device)
 
 
 def main():
@@ -25,7 +15,7 @@ def main():
     args = parser.parse_args()
 
     device = get_device()
-    model = load_model(device)
+    model, _, _ = load_model(load_config().model, device=device)
 
     for fn in listdir(args.input_dir):
         path = join(args.input_dir, fn)
