@@ -74,6 +74,14 @@ def acc_to_str(acc: torch.Tensor) -> str:
     return '; '.join(result)
 
 
+def acc_to_details(acc: torch.Tensor) -> str:
+    result = [' t \\ r  ' + ' '.join(map(lambda n: '%6s' % n, channel_names))]
+    acc = acc.float() * (100 / acc.sum().item())
+    for i, name in enumerate(channel_names):
+        result.append('%6s: %s' % (name, ' '.join(map(lambda a: '%5.2f%%' % a, acc[i].tolist()))))
+    return '\n'.join(result)
+
+
 def get_device():
     print('PyTorch version:', torch.__version__)
     USE_CUDA = torch.cuda.is_available()
