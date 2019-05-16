@@ -1,20 +1,14 @@
+import json
 from os import listdir
 from os.path import isfile, join
 import numpy as np
 import pyzed.sl as sl
 import cv2
 from csv_cut import load, save, Cut
+from utils import channels
 
 
 cuts = {}
-colors = [
-    (0, 0, 0),
-    (0, 255, 0),
-    (255, 0, 0),
-    (0, 0, 255),
-    (128, 128, 128),
-    (255, 255, 255)
-]
 
 idx = 5
 current_type = 1
@@ -48,7 +42,7 @@ def play(filepath):
     # print("  Save the current image:     s")
     # print("  Quit the video reading:     q\n")
     err = None
-    while key != 113:  # for 'q' key
+    while key != ord('q'):  # for 'q' key
         if err is None or not pause:
             err = cam.grab(runtime)
         if err == sl.ERROR_CODE.SUCCESS:
@@ -56,9 +50,10 @@ def play(filepath):
             position = cam.get_svo_position()
             img = mat.get_data()
             img_initial = np.copy(img)
-            for cut in cuts.get(file_names[idx], []):
+            for cut in cuts.get(file_names[idx].replace('\\', '/'), []):
                 if cut.start <= position and (cut.stop is None or cut.stop > position):
-                    cv2.rectangle(img, (cut.left, cut.top), (cut.left + SIZE, cut.top + SIZE), colors[cut.type], 1)
+                    cv2.rectangle(img, (cut.left, cut.top), (cut.left + SIZE, cut.top + SIZE),
+                                  tuple(c * 255 for c in channels[cut.type]), 1)
 
             cv2.imshow("ZED", img)
             key = cv2.waitKey(1)
@@ -83,7 +78,7 @@ def play(filepath):
             save(cuts)
         elif key == ord('i'):
             save_img(img_initial)
-        elif chr(key) in '012345':
+        elif ord('0') <= key <= ord('9'):
             current_type = key - ord('0')
 
     cam.close()
@@ -94,7 +89,7 @@ def play(filepath):
 def click(event, x, y, flags, param):
     global cuts, current_type
 
-    fn = file_names[idx]
+    fn = file_names[idx].replace('\\', '/')
     if event == cv2.EVENT_LBUTTONDOWN:
         cs = [cut for cut in cuts.get(fn, []) if cut.type != current_type]
         cs.append(Cut(fn, x - SIZE // 2, y - SIZE // 2, position, None, current_type))
@@ -106,7 +101,9 @@ def click(event, x, y, flags, param):
         ]
 
 
-def main(base_folder='/home/igor/terra/svo', folder='sar', file_mask='sar/rec2018_07_21-%d.svo'):
+def main(folder='sar'):
+    with open('config.json', 'r') as f:
+        base_folder = json.load(f).get('svo_path', 'svo')
     global idx, file_names, cuts
     load(cuts)
     file_names = sorted([
@@ -117,7 +114,7 @@ def main(base_folder='/home/igor/terra/svo', folder='sar', file_mask='sar/rec201
 
     cv2.namedWindow("ZED")
     cv2.setMouseCallback("ZED", click)
-    idx = 5
+    idx = 0
     while 0 <= idx < len(file_names):
         print(file_names[idx])
         if not play(join(base_folder, file_names[idx])):
