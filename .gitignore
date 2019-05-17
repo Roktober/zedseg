@@ -4,3 +4,7 @@ svo
 .idea
 **/__pycache__
 models/*/
+debug/
+avi/
+*.avi
+cuts_bak.csv

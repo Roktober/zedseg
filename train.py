@@ -102,6 +102,8 @@ def main(with_gui=None, check_stop=None):
             show_images(x, 'input', save_dir='debug')
             show_images(y[:, :, ::2, ::2], 'output', is_mask=True, save_dir='debug')
             show_images(target[:, :, ::2, ::2], 'target', is_mask=True, save_dir='debug')
+            with open('debug/classes.txt', 'w') as f:
+                f.write(' '.join(classes))
 
         # GUI:
         if with_gui:
