@@ -7,15 +7,15 @@ from collections import namedtuple
 channels = [
     (0, 0, 0),  # Ground, black
     (0, 1, 0),  # Trees, green
+    (0, 1, 1),  # Bush, yellow
     (0, 0, 1),  # Towers, red
     (1, 0, 0),  # Wires, blue
     (1, 1, 1),  # Copter, white
-    (0, 1, 1),  # Bush, yellow
     (1, 0, 1),  # Cars, magenta
     (1, 1, 0),  # Buildings, cyan
 ]
 
-channel_names = ['ground', 'tree', 'tower', 'wire', 'copter', 'bush', 'car', 'build']
+channel_names = ['ground', 'tree', 'bush', 'tower', 'wire', 'copter', 'car', 'build']
 
 
 def visualize(source: np.ndarray, result: np.ndarray):  # (height, width, 3)
