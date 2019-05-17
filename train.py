@@ -19,7 +19,7 @@ optimizers = {
 }
 
 
-def show_images(image_torch, name, is_mask=False):
+def show_images(image_torch, name, is_mask=False, save_dir=None):
     if is_mask:
         image = probs_to_image(image_torch)
     else:
@@ -35,7 +35,10 @@ def show_images(image_torch, name, is_mask=False):
     for y in range(h):
         for x in range(w):
             result[y * ih:y * ih + ih, x * iw:x * iw + iw] = image[y * w + x]
-    cv2.imshow(name, result)
+    if save_dir is None:
+        cv2.imshow(name, result)
+    else:
+        cv2.imwrite(join(save_dir, name + '.png'), result)
 
 
 def create_optimizer(config, model):
@@ -93,6 +96,12 @@ def main(with_gui=None, check_stop=None):
         x, target, classes = next(generator)
         optimizer.zero_grad()
         y = model(x)
+
+        # Save for debug:
+        if train_cfg.get('save', False):
+            show_images(x, 'input', save_dir='debug')
+            show_images(y[:, :, ::2, ::2], 'output', is_mask=True, save_dir='debug')
+            show_images(target[:, :, ::2, ::2], 'target', is_mask=True, save_dir='debug')
 
         # GUI:
         if with_gui:
