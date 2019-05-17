@@ -11,7 +11,7 @@ def main(size=320):
     mat = sl.Mat()
     with open('config.json', 'r') as f:
         config = json.load(f)
-    base_dir = config['svo_dir']
+    base_dir = config['svo_path']
     cuts = {}
     load(cuts, base_dir=base_dir)
     cuts = sum(cuts.values(), [])
