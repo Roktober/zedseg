@@ -2,7 +2,7 @@ from h5py import File
 import torch
 import numpy as np
 from random import choice, randrange
-from utils import channels
+from utils import channels, channel_names
 
 
 def augment(image, resolution):
@@ -27,6 +27,7 @@ def h5_generate(batch=4, classes=None, channel_count=3, source='cuts.h5',
         else:
             output_batch = np.empty((batch * len(groups),) + resolution + (channel_count,), dtype=np.uint8)
             input_batch = np.empty((batch * len(groups),) + resolution + (channel_count,), dtype=np.uint8)
+        output_classes = []
         for gi, group in enumerate(groups):
             gt = group.attrs['type']
             scalar = [1 if i == gt else 0 for i in classes]
@@ -37,6 +38,7 @@ def h5_generate(batch=4, classes=None, channel_count=3, source='cuts.h5',
             else:
                 color = np.array(channels[gt], dtype=np.uint8) * 255
                 output_batch[gi * batch:(gi + 1) * batch] = color
+            output_classes += [channel_names[gt]] * batch
         while True:
             for gi, group in enumerate(groups):
                 for o in range(gi * batch, (gi + 1) * batch):
@@ -47,7 +49,7 @@ def h5_generate(batch=4, classes=None, channel_count=3, source='cuts.h5',
                     else:
                         result = np.moveaxis(cut[randrange(cut.shape[0])], 0, -1)
                     input_batch[o] = result
-            yield input_batch, output_batch
+            yield input_batch, output_batch, output_classes
 
 
 if __name__ == "__main__":

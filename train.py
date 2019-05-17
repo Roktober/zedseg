@@ -49,6 +49,14 @@ def log(name, msg):
         f.write('%s %s\n' % t)
 
 
+def part_loss(output, target, loss_f, join_channels=slice(0, 3), normal_channels=slice(3, None)):
+    max_output, _ = output[:, join_channels].max(1, keepdim=True)
+    output = torch.cat((output[:, normal_channels], max_output), dim=1)
+    max_target, _ = target[:, join_channels].max(1, keepdim=True)
+    target = torch.cat((target[:, normal_channels], max_target), dim=1)
+    return loss_f(output, target)
+
+
 def main(with_gui=None, check_stop=None):
     device_idx, model_name, generator_cfg, _, train_cfg = load_config()
     device = get_device()
@@ -81,18 +89,10 @@ def main(with_gui=None, check_stop=None):
                 log(model_name, 'Created generator')
             train_cfg = cfg.train
 
-        # Optimize:
-        x, target = next(generator)
+        # Run:
+        x, target, classes = next(generator)
         optimizer.zero_grad()
         y = model(x)
-        acc_mat += check_accuracy(y, target)
-        loss = loss_f(y, target)
-        loss_item = loss.item()
-        loss_sum += loss_item
-        count += 1
-        images += len(x)
-        loss.backward()
-        optimizer.step()
 
         # GUI:
         if with_gui:
@@ -107,6 +107,24 @@ def main(with_gui=None, check_stop=None):
                 pause = not pause
             elif key == ord('q'):
                 break
+
+        # Optimize:
+        if 'part' in classes:
+            part = [c == 'part' for c in classes]
+            loss_p = part_loss(y[part], target[part], loss_f)
+            not_part = [not p for p in part]
+            y = y[not_part]
+            target = target[not_part]
+        else:
+            loss_p = 0
+        acc_mat += check_accuracy(y, target)
+        loss = loss_f(y, target) + loss_p
+        loss_item = loss.item()
+        loss_sum += loss_item
+        count += 1
+        images += len(x)
+        loss.backward()
+        optimizer.step()
 
         # Complete epoch:
         if images >= train_cfg['epoch_images']:

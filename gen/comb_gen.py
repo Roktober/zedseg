@@ -38,9 +38,10 @@ def comb_generate(gens, resolution=(320, 320), device=None, input_channels=3):
     xr = None
     yr = None
     for samples in zip(*gens):
-        xs, ys = zip(*samples)
+        xs, ys, classes = zip(*samples)
         xs = sum([list(a) for a in xs], [])
         ys = sum([list(a) for a in ys], [])
+        classes = sum(classes, [])
         if xr is None:
             xr = torch.empty((len(xs), input_channels) + resolution, dtype=torch.float32, device=device)
         if yr is None:
@@ -51,4 +52,4 @@ def comb_generate(gens, resolution=(320, 320), device=None, input_channels=3):
             x, y = map(augmented.get, ['image', 'mask'])
             xr[b] = torch.tensor(np.moveaxis(x, -1, 0), dtype=torch.float32, device=device) / 255
             yr[b] = image_to_probs(y, device=device)
-        yield xr, yr
+        yield xr, yr, classes
