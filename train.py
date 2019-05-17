@@ -116,9 +116,11 @@ def main(with_gui=None, check_stop=None):
             y = y[not_part]
             target = target[not_part]
         else:
-            loss_p = 0
+            loss_p = None
         acc_mat += check_accuracy(y, target)
-        loss = loss_f(y, target) + loss_p
+        loss = loss_f(y, target)
+        if loss_p is not None:
+            loss = (loss + loss_p) * 0.5
         loss_item = loss.item()
         loss_sum += loss_item
         count += 1
