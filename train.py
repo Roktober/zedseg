@@ -52,11 +52,15 @@ def log(name, msg):
         f.write('%s %s\n' % t)
 
 
-def part_loss(output, target, loss_f, join_channels=slice(0, 3), normal_channels=slice(3, None)):
-    max_output, _ = output[:, join_channels].max(1, keepdim=True)
-    output = torch.cat((output[:, normal_channels], max_output), dim=1)
-    max_target, _ = target[:, join_channels].max(1, keepdim=True)
-    target = torch.cat((target[:, normal_channels], max_target), dim=1)
+def part_loss(output, target, loss_f, join_channels=slice(0, 3), normal_channels=slice(3, None), train_reduced=False):
+    if train_reduced:
+        max_output, _ = output[:, join_channels].max(1, keepdim=True)
+        output = torch.cat((output[:, normal_channels], max_output), dim=1)
+        max_target, _ = target[:, join_channels].max(1, keepdim=True)
+        target = torch.cat((target[:, normal_channels], max_target), dim=1)
+    else:
+        output = output[:, normal_channels]
+        target = target[:, normal_channels]
     return loss_f(output, target)
 
 
