@@ -2,7 +2,7 @@ import numpy as np
 import time
 import cv2
 import torch
-from utils import channels, probs_to_image, get_device, check_accuracy, acc_to_str, load_config
+from utils import channels, channel_names, probs_to_image, get_device, check_accuracy, acc_to_str, load_config
 from model import load_model, save_model
 from gen import create_generator
 from torch.nn import BCELoss
@@ -53,15 +53,30 @@ def log(name, msg):
 
 
 def part_loss(output, target, loss_f, join_channels=slice(0, 3), normal_channels=slice(3, None), train_reduced=False):
-    if train_reduced:
-        max_output, _ = output[:, join_channels].max(1, keepdim=True)
-        output = torch.cat((output[:, normal_channels], max_output), dim=1)
-        max_target, _ = target[:, join_channels].max(1, keepdim=True)
-        target = torch.cat((target[:, normal_channels], max_target), dim=1)
-    else:
-        output = output[:, normal_channels]
-        target = target[:, normal_channels]
-    return loss_f(output, target)
+    output_normal = output[:, normal_channels]
+    target_normal = target[:, normal_channels]
+    max_output, _ = output[:, join_channels].max(1, keepdim=True)
+    output = torch.cat((output_normal, max_output), dim=1)
+    max_target, _ = target[:, join_channels].max(1, keepdim=True)
+    target = torch.cat((target_normal, max_target), dim=1)
+    acc = check_accuracy(output, target)
+    return (loss_f(output, target) if train_reduced else loss_f(output_normal, target_normal)), acc
+
+
+def combine_acc(acc1: torch.Tensor, acc2: torch.Tensor, classes1, classes2):
+    classes = classes1 + [c2 for c2 in classes2 if c2 not in classes1]
+    size = len(classes)
+    acc = torch.zeros((size, size), dtype=acc1.dtype)
+    size1 = len(classes1)
+    acc[:size1, :size1] = acc1
+    for i, a in enumerate(classes2):
+        ia = classes.index(a)
+        for j, b in enumerate(classes2):
+            ib = classes.index(b)
+            acc[ia, ib] += acc2[i, j]
+    # m2 = [c in classes2 for c in classes]
+    # acc[m2][:, m2] += acc2
+    return acc, classes
 
 
 def main(with_gui=None, check_stop=None):
@@ -72,7 +87,7 @@ def main(with_gui=None, check_stop=None):
     model = None
     loss_f = BCELoss()
     pause = False
-    images, count, loss_sum, epoch, acc_mat = 0, 0, 0, 1, 0
+    images, count, loss_sum, epoch, acc_sum, acc_sum_p = 0, 0, 0, 1, 0, 0
     generator, generator_cfg = None, None
     optimizer, optimizer_cfg = None, None
     best_loss = None
@@ -126,13 +141,14 @@ def main(with_gui=None, check_stop=None):
         # Optimize:
         if 'part' in classes:
             part = [c == 'part' for c in classes]
-            loss_p = part_loss(y[part], target[part], loss_f)
+            loss_p, acc_p = part_loss(y[part], target[part], loss_f)
+            acc_sum_p += acc_p
             not_part = [not p for p in part]
             y = y[not_part]
             target = target[not_part]
         else:
             loss_p = None
-        acc_mat += check_accuracy(y, target)
+        acc_sum += check_accuracy(y, target)
         loss = loss_f(y, target)
         if loss_p is not None:
             loss = (loss + loss_p) * 0.5
@@ -145,16 +161,18 @@ def main(with_gui=None, check_stop=None):
 
         # Complete epoch:
         if images >= train_cfg['epoch_images']:
+            acc_total, names = combine_acc(acc_sum, acc_sum_p, channel_names, channel_names[3:] + ['tbg'])
             msg = 'Epoch %d: train loss %f, acc %s' % (
                 epoch, loss_sum / count,
-                acc_to_str(acc_mat)
+                acc_to_str(acc_total, names=names)
             )
             log(model_name, msg)
             count = 0
             images = 0
             loss_sum = 0
             epoch += 1
-            acc_mat[:] = 0
+            acc_sum[:] = 0
+            acc_sum_p[:] = 0
             save_model(model_name, model, best_loss, epoch)
 
     log(model_name, 'Stopped\n')

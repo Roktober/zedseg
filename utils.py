@@ -52,22 +52,25 @@ def image_to_tensor(image: np.ndarray, device=None):
 
 
 def check_accuracy(result: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-    values, indexes = result.max(dim=-3, keepdim=True)
-    result = result == values
-    target = target > 0
-    target_size = target.shape[-3]
-    mat = torch.empty((target_size, result.shape[-3]), dtype=torch.int64)
-    for i in range(target_size):
-        row = (result * target[..., i:i + 1, :, :]).sum((-2, -1))
-        while len(row.shape) > 1:
-            row = row.sum(0)
-        mat[i] = row
-    return mat
+    with torch.no_grad():
+        values, indexes = result.max(dim=-3, keepdim=True)
+        result = result == values
+        target = target > 0
+        target_size = target.shape[-3]
+        mat = torch.empty((target_size, result.shape[-3]), dtype=torch.int64)
+        for i in range(target_size):
+            row = (result * target[..., i:i + 1, :, :]).sum((-2, -1))
+            while len(row.shape) > 1:
+                row = row.sum(0)
+            mat[i] = row
+        return mat
 
 
-def acc_to_str(acc: torch.Tensor) -> str:
+def acc_to_str(acc: torch.Tensor, names=None) -> str:
     result = []
-    for i, name in enumerate(channel_names):
+    if names is None:
+        names = channel_names
+    for i, name in enumerate(names):
         item = acc[i, i].item()
         target_sum = acc[i].sum().item()
         result_sum = acc[:, i].sum().item()
