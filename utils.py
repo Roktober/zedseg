@@ -75,7 +75,7 @@ def acc_to_str(acc: torch.Tensor, names=None) -> str:
         target_sum = acc[i].sum().item()
         result_sum = acc[:, i].sum().item()
         t, r = tuple('%.1f%%' % (item / s * 100) if s > 0 else '???' for s in [target_sum, result_sum])
-        result.append('%s +%s, -%s' % (name, t, r))
+        result.append('%s %s, %s' % (name, t, r))
     return '; '.join(result)
 
 
