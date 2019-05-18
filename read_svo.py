@@ -3,7 +3,7 @@ from queue import Empty
 import pyzed.sl as sl
 
 
-def process(q: Queue, fn: str):
+def process(q: Queue, fn: str, view=None):
     runtime = sl.RuntimeParameters()
     mat = sl.Mat()
     init = sl.InitParameters(svo_input_filename=fn, svo_real_time_mode=False)
@@ -17,15 +17,15 @@ def process(q: Queue, fn: str):
         if err == sl.ERROR_CODE.ERROR_CODE_NOT_A_NEW_FRAME:
             break
         assert err == sl.ERROR_CODE.SUCCESS
-        cam.retrieve_image(mat)
+        cam.retrieve_image(mat, view)
         data = mat.get_data()[..., :3]  # [200:520, 400:720]
         q.put(data)
     cam.close()
 
 
-def read_svo(file_name):
+def read_svo(file_name, view=sl.VIEW.VIEW_LEFT):
     q = Queue()
-    p = Process(target=process, args=(q, file_name))
+    p = Process(target=process, args=(q, file_name, view))
     p.start()
     while p.is_alive():
         try:

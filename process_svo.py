@@ -12,6 +12,7 @@ from os.path import join, isfile, isdir, basename
 from os import mkdir
 from utils import probs_to_image, visualize, image_to_tensor
 from model import load_model
+from pyzed import sl
 
 print('PyTorch version:', torch.__version__)
 USE_CUDA = torch.cuda.is_available()
@@ -41,9 +42,10 @@ def main(show=True, images_dir='images', image_fmt='%.3d.png'):
     parser.add_argument('input', type=str, help='Input directory or file')
     parser.add_argument('output', type=str, nargs='?', default=None, help='Output directory or file')
     parser.add_argument('-m', type=str, required=False, help='Model to process with')
-    parser.add_argument('-r', type=int, required=False, default=1, help='Reduce factor')
+    parser.add_argument('-f', type=int, required=False, default=1, help='Reduce factor')
     parser.add_argument('-v', action='store_true', required=False, default=False, help='Mix processed with input')
-    parser.add_argument('-f', type=str, required=False, default='avc1', help='FOURCC code')
+    parser.add_argument('-r', action='store_true', required=False, default=False, help='Read right image')
+    parser.add_argument('-c', type=str, required=False, default='avc1', help='FOURCC code')
     args = parser.parse_args()
 
     model = None if args.m is None else load_model(args.m, device=device)[0]
@@ -70,7 +72,7 @@ def main(show=True, images_dir='images', image_fmt='%.3d.png'):
     with torch.no_grad():
         for fn in files:
             print('Processing %s' % fn)
-            for source in read_svo(fn):
+            for source in read_svo(fn, sl.VIEW.VIEW_RIGHT if args.r else sl.VIEW.VIEW_LEFT):
 
                 # Processing:
                 if model is not None:
@@ -82,15 +84,15 @@ def main(show=True, images_dir='images', image_fmt='%.3d.png'):
                     output = source
 
                 if out_height is None:
-                    out_height, out_width = map(lambda s: s // args.r, output.shape[:2])
-                if args.r != 1:
+                    out_height, out_width = map(lambda s: s // args.f, output.shape[:2])
+                if args.f != 1:
                     output = cv2.resize(output, (out_width, out_height))
 
                 # Open writer:
                 if writer is None and out_path is not None:
                     dst = join(out_path, basename(fn)[:-3] + 'mp4') if to_dir else out_path
                     print('Write to %s' % dst)
-                    writer = cv2.VideoWriter(dst, cv2.VideoWriter_fourcc(*args.f),
+                    writer = cv2.VideoWriter(dst, cv2.VideoWriter_fourcc(*args.c),
                                              10, (out_width, out_height))
 
                 # Return output:
