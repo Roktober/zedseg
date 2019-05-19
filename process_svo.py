@@ -45,7 +45,7 @@ def main(show=True, images_dir='images', image_fmt='%.3d.png'):
     parser.add_argument('-f', type=int, required=False, default=1, help='Reduce factor')
     parser.add_argument('-v', action='store_true', required=False, default=False, help='Mix processed with input')
     parser.add_argument('-r', action='store_true', required=False, default=False, help='Read right image')
-    parser.add_argument('-c', type=str, required=False, default='avc1', help='FOURCC code')
+    parser.add_argument('-c', type=str, required=False, default='M4S2', help='FOURCC code')
     args = parser.parse_args()
 
     model = None if args.m is None else load_model(args.m, device=device)[0]
@@ -90,7 +90,7 @@ def main(show=True, images_dir='images', image_fmt='%.3d.png'):
 
                 # Open writer:
                 if writer is None and out_path is not None:
-                    dst = join(out_path, basename(fn)[:-3] + 'mp4') if to_dir else out_path
+                    dst = join(out_path, basename(fn)[:-3] + 'avi') if to_dir else out_path
                     print('Write to %s' % dst)
                     writer = cv2.VideoWriter(dst, cv2.VideoWriter_fourcc(*args.c),
                                              10, (out_width, out_height))
@@ -111,6 +111,10 @@ def main(show=True, images_dir='images', image_fmt='%.3d.png'):
                             save_idx += 1
                         elif key == ord('q'):
                             return
+                        elif key == ord('m'):
+                            cv2.imshow('output', result)
+                        elif key == ord('i'):
+                            cv2.imshow('output', source)
                         if not pause:
                             break
             if to_dir and writer is not None:
