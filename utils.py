@@ -22,13 +22,15 @@ def visualize(source: np.ndarray, result: np.ndarray):  # (height, width, 3)
     return source | (result & 192)
 
 
-def probs_to_image(probs: torch.Tensor):    # probs: (channels, height, width) [0, 1]
+def probs_to_image(probs: torch.Tensor, mask: torch.Tensor = None):    # probs: (channels, height, width) [0, 1]
     with torch.no_grad():
         image = torch.zeros(probs.shape[:-3] + probs.shape[-2:] + (3,), dtype=torch.uint8)
         vals, indices = torch.max(probs, dim=-3)
         for c in range(min(len(channels), probs.shape[-3])):
             color = torch.tensor(channels[c], dtype=torch.uint8) * 255
             image[indices == c] = color
+        if mask is not None:
+            image[mask == 0] = torch.tensor((128, 128, 128), dtype=torch.uint8)
         return image.cpu().numpy()  # image (height, width, 3) [0, 255]
 
 

@@ -1,3 +1,4 @@
+cvat.h5
 cuts.h5
 config.json
 svo
@@ -9,3 +10,5 @@ avi/
 *.avi
 cuts_bak.csv
 *.png~
+images/saved-in
+images/saved-out
