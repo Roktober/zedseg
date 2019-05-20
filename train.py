@@ -21,7 +21,7 @@ optimizers = {
 
 def show_images(image_torch, name, mask=None, save_dir=None, step=1):
     if mask is not None:
-        image = probs_to_image(image_torch, mask)
+        image = probs_to_image(image_torch, mask if type(mask) is torch.Tensor else None)
     else:
         try:
             image = (image_torch.detach().cpu().numpy() * 255).astype(np.uint8)
@@ -121,7 +121,7 @@ def main(with_gui=None, check_stop=None):
         # Save for debug:
         if train_cfg.get('save', False):
             show_images(x, 'input', save_dir='debug')
-            show_images(y, 'output', mask=mask, save_dir='debug')
+            show_images(y, 'output', mask=True, save_dir='debug')
             show_images(target, 'target', mask=mask, save_dir='debug')
             # with open('debug/classes.txt', 'w') as f:
             #    f.write(' '.join(classes))
@@ -130,7 +130,7 @@ def main(with_gui=None, check_stop=None):
         if with_gui:
             if not pause:
                 show_images(x, 'input')
-                show_images(y, 'output', mask=mask, step=2)
+                show_images(y, 'output', mask=True, step=2)
                 show_images(target, 'target', mask=mask, step=2)
             key = cv2.waitKey(1)
             if key == ord('s'):
