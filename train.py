@@ -123,8 +123,6 @@ def main(with_gui=None, check_stop=None):
             show_images(x, 'input', save_dir='debug')
             show_images(y, 'output', mask=True, save_dir='debug')
             show_images(target, 'target', mask=mask, save_dir='debug')
-            # with open('debug/classes.txt', 'w') as f:
-            #    f.write(' '.join(classes))
 
         # GUI:
         if with_gui:

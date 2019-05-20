@@ -4,6 +4,7 @@ import numpy as np
 from pyzed import sl
 from os.path import join, isfile
 from os import listdir
+import json
 import xml.etree.ElementTree as ET
 from utils import channel_names, probs_to_image, visualize
 from h5py import File
@@ -100,7 +101,7 @@ def process_xml(fn, svo_dir='svo', show: bool = True):
         frames_list.append(frame_num)
 
         if show:
-            image = probs_to_image(target, mask=mask)
+            image = probs_to_image(target, mask=mask.unsqueeze(0))
             image = visualize(source_image, image)
             cv2.imshow('image', image)
             cv2.waitKey(1)
@@ -108,10 +109,14 @@ def process_xml(fn, svo_dir='svo', show: bool = True):
 
 
 def main(xml_dir='cvat', result_fn='cvat.h5'):
+    with open('config.json', 'r') as file:
+        config = json.load(file)
+        svo_path = config['svo_path']
+        show = config['train'].get('with_gui', False)
     with File(result_fn, 'w') as file:
         for fn in filter(lambda f: f.endswith('.xml') and isfile(join(xml_dir, f)), listdir(xml_dir)):
             fn = join(xml_dir, fn)
-            images, targets, name, frames = process_xml(fn)
+            images, targets, name, frames = process_xml(fn, svo_path, show)
             if images.shape[0] > 0:
                 group = file.create_group(name)
                 group.attrs['frames'] = frames
