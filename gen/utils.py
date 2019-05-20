@@ -1,9 +1,10 @@
-from gen import comb_generate, h5_generate, png_generate
+from gen import comb_generate, h5_generate, png_generate, cvat_generate
 
 types = {
     'combo': comb_generate,
     'h5': h5_generate,
-    'png': png_generate
+    'png': png_generate,
+    'cvat': cvat_generate
 }
 
 
