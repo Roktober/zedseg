@@ -85,7 +85,7 @@ def main(with_gui=None, check_stop=None):
     if with_gui is None:
         with_gui = train_cfg.get('with_gui')
     model = None
-    loss_f = BCELoss()
+    loss_f = BCELoss(reduction='none')
     pause = False
     images, count, loss_sum, epoch, acc_sum, acc_sum_p = 0, 0, 0, 1, 0, 0
     generator, generator_cfg = None, None
@@ -112,7 +112,8 @@ def main(with_gui=None, check_stop=None):
             train_cfg = cfg.train
 
         # Run:
-        x, target, classes = next(generator)
+        x, target = next(generator)
+        mask, _ = target.max(dim=1, keepdim=True)
         optimizer.zero_grad()
         y = model(x)
 
@@ -121,8 +122,8 @@ def main(with_gui=None, check_stop=None):
             show_images(x, 'input', save_dir='debug')
             show_images(y[:, :, ::2, ::2], 'output', is_mask=True, save_dir='debug')
             show_images(target[:, :, ::2, ::2], 'target', is_mask=True, save_dir='debug')
-            with open('debug/classes.txt', 'w') as f:
-                f.write(' '.join(classes))
+            # with open('debug/classes.txt', 'w') as f:
+            #    f.write(' '.join(classes))
 
         # GUI:
         if with_gui:
@@ -139,19 +140,19 @@ def main(with_gui=None, check_stop=None):
                 break
 
         # Optimize:
-        if 'part' in classes:
-            part = [c == 'part' for c in classes]
-            loss_p, acc_p = part_loss(y[part], target[part], loss_f)
-            acc_sum_p += acc_p
-            not_part = [not p for p in part]
-            y = y[not_part]
-            target = target[not_part]
-        else:
-            loss_p = None
+        # if 'part' in classes:
+        #    part = [c == 'part' for c in classes]
+        #    loss_p, acc_p = part_loss(y[part], target[part], loss_f)
+        #    acc_sum_p += acc_p
+        #     not_part = [not p for p in part]
+        #     y = y[not_part]
+        #    target = target[not_part]
+        # else:
+        #    loss_p = None
         acc_sum += check_accuracy(y, target)
-        loss = loss_f(y, target)
-        if loss_p is not None:
-            loss = (loss + loss_p) * 0.5
+        loss = (loss_f(y, target) * mask).mean()
+        # if loss_p is not None:
+        #    loss = (loss + loss_p) * 0.5
         loss_item = loss.item()
         loss_sum += loss_item
         count += 1
@@ -161,7 +162,7 @@ def main(with_gui=None, check_stop=None):
 
         # Complete epoch:
         if images >= train_cfg['epoch_images']:
-            acc_total, names = combine_acc(acc_sum, acc_sum_p, channel_names, channel_names[3:] + ['tbg'])
+            acc_total, names = acc_sum, channel_names # combine_acc(acc_sum, acc_sum_p, channel_names, channel_names[3:] + ['tbg'])
             msg = 'Epoch %d: train loss %f, acc %s' % (
                 epoch, loss_sum / count,
                 acc_to_str(acc_total, names=names)
@@ -172,7 +173,7 @@ def main(with_gui=None, check_stop=None):
             loss_sum = 0
             epoch += 1
             acc_sum[:] = 0
-            acc_sum_p[:] = 0
+            # acc_sum_p[:] = 0
             save_model(model_name, model, best_loss, epoch)
 
     log(model_name, 'Stopped\n')

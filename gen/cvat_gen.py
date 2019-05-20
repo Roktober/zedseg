@@ -19,13 +19,12 @@ def cvat_generate(batch: int = 4, source='cvat.h5', with_shuffle=True, infinite=
                     shuffle(frames)
                 for frame in frames:
                     image, target = map(lambda i: np.moveaxis(i[frame], 0, -1), [images_ds, targets_ds])
-                    mask = target.any(axis=-1)
                     if batch_data is None:
                         batch_data = [
-                            np.empty((batch,) + mask.shape + w, dtype=np.uint8)
-                            for w in [(3,), (target.shape[-1],), ()]
+                            np.empty((batch,) + image.shape[:2] + w, dtype=np.uint8)
+                            for w in [(3,), (target.shape[-1],)]
                         ]
-                    for d, s in zip(batch_data, [image, target, mask]):
+                    for d, s in zip(batch_data, [image, target]):
                         d[batch_idx] = s
                     batch_idx += 1
                     if batch_idx >= batch:

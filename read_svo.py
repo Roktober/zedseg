@@ -4,7 +4,7 @@ import pyzed.sl as sl
 
 
 def process(q: Queue, fn: str, view=None):
-    runtime = sl.RuntimeParameters()
+    runtime = sl.RuntimeParameters(enable_depth=False, enable_point_cloud=False)
     mat = sl.Mat()
     init = sl.InitParameters(svo_input_filename=fn, svo_real_time_mode=False)
     cam = sl.Camera()

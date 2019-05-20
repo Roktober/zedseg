@@ -4,10 +4,11 @@ from csv_cut import load
 from os.path import join
 import pyzed.sl as sl
 import numpy as np
+from utils import channel_names
 
 
 def main(size=320):
-    runtime = sl.RuntimeParameters()
+    runtime = sl.RuntimeParameters(enable_depth=False, enable_point_cloud=False)
     mat = sl.Mat()
     with open('config.json', 'r') as f:
         config = json.load(f)
@@ -20,6 +21,7 @@ def main(size=320):
         for t in types:
             group = file.create_group('type_%d' % t)
             group.attrs['type'] = t
+            group.attrs['class_name'] = channel_names[t]
             for idx, cut in enumerate(filter(lambda c: c.type == t, cuts)):
                 init = sl.InitParameters(svo_input_filename=join(base_dir, cut.file), svo_real_time_mode=False)
                 cam = sl.Camera()

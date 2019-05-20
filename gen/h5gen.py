@@ -11,7 +11,7 @@ def augment(image, resolution):
     return image
 
 
-def h5_generate(batch=4, classes=None, channel_count=3, source='cuts.h5',
+def h5_generate(batch=4, classes=None, input_channels=3, source='cuts.h5',
                 resolution=(320, 320), device=None, make_tensor=False):
     with File(source, mode='r') as file:
         groups = [
@@ -22,23 +22,24 @@ def h5_generate(batch=4, classes=None, channel_count=3, source='cuts.h5',
         if classes is None:
             classes = list(map(lambda g: g.attrs['type'], groups))
         if make_tensor:
-            output_batch = torch.empty((batch * len(groups), len(classes)) + resolution, device=device)
-            input_batch = torch.empty((batch * len(groups), channel_count) + resolution, device=device)
+            output_batch = torch.empty((batch * len(groups), len(channels), 1, 1), device=device)
+            input_batch = torch.empty((batch * len(groups), input_channels) + resolution, device=device)
         else:
-            output_batch = np.empty((batch * len(groups),) + resolution + (channel_count,), dtype=np.uint8)
-            input_batch = np.empty((batch * len(groups),) + resolution + (channel_count,), dtype=np.uint8)
-        output_classes = []
+            output_batch = np.empty((batch * len(groups),) + (1, 1, len(channels)), dtype=np.uint8)
+            input_batch = np.empty((batch * len(groups),) + resolution + (input_channels,), dtype=np.uint8)
+        # output_classes = []
         for gi, group in enumerate(groups):
             gt = group.attrs['type']
-            scalar = [1 if i == gt else 0 for i in classes]
+            channel_name = group.attrs['class_name']
+            scalar = [1 if cn == channel_name else 0 for cn in channel_names]
             if make_tensor:
                 output_batch[gi * batch:(gi + 1) * batch] = torch.tensor(
                     scalar, dtype=torch.float32, device=device
                 ).unsqueeze(-1).unsqueeze(-1)
             else:
-                color = np.array(channels[gt], dtype=np.uint8) * 255
-                output_batch[gi * batch:(gi + 1) * batch] = color
-            output_classes += [channel_names[gt]] * batch
+                # color = np.array(channels[gt], dtype=np.uint8) * 255
+                output_batch[gi * batch:(gi + 1) * batch] = np.array(scalar, dtype=np.uint8)
+            # output_classes += [channel_names[gt]] * batch
         while True:
             for gi, group in enumerate(groups):
                 for o in range(gi * batch, (gi + 1) * batch):
@@ -49,7 +50,7 @@ def h5_generate(batch=4, classes=None, channel_count=3, source='cuts.h5',
                     else:
                         result = np.moveaxis(cut[randrange(cut.shape[0])], 0, -1)
                     input_batch[o] = result
-            yield input_batch, output_batch, output_classes
+            yield input_batch, output_batch
 
 
 if __name__ == "__main__":
