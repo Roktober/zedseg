@@ -30,7 +30,7 @@ def probs_to_image(probs: torch.Tensor, mask: torch.Tensor = None):    # probs: 
             color = torch.tensor(channels[c], dtype=torch.uint8) * 255
             image[indices == c] = color
         if mask is not None:
-            image[mask == 0] = torch.tensor((128, 128, 128), dtype=torch.uint8)
+            image[mask.squeeze(-3) == 0] = torch.tensor((128, 128, 128), dtype=torch.uint8)
         return image.cpu().numpy()  # image (height, width, 3) [0, 255]
 
 

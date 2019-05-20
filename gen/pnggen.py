@@ -23,14 +23,16 @@ def png_generate(batch=4, classes=None, root_dir='images', make_tensor=False, de
         for c in classes
     ], [])
     while True:
-        inputs, outputs, f_classes = [], [], []
+        inputs, outputs = [], []
         for _ in range(batch):
             f_in, f_out, f_class = choice(files)
+            out = image_to_probs(imread(f_out))
+            if f_class == 'part':
+                out[:3] = 0
             if make_tensor:
                 inputs.append(torch.tensor(np.moveaxis(imread(f_in), -1, -3), dtype=torch.float32, device=device) / 255)
-                outputs.append(image_to_probs(imread(f_out)))
+                outputs.append(out)
             else:
                 inputs.append(imread(f_in))
-                outputs.append(imread(f_out))
-            f_classes.append(f_class)
-        yield inputs, outputs, f_classes
+                outputs.append(np.moveaxis(out.numpy(), 0, -1))
+        yield inputs, outputs

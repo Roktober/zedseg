@@ -19,15 +19,16 @@ optimizers = {
 }
 
 
-def show_images(image_torch, name, is_mask=False, save_dir=None):
-    if is_mask:
-        image = probs_to_image(image_torch)
+def show_images(image_torch, name, mask=None, save_dir=None, step=1):
+    if mask is not None:
+        image = probs_to_image(image_torch, mask)
     else:
         try:
             image = (image_torch.detach().cpu().numpy() * 255).astype(np.uint8)
             image = np.moveaxis(image, -3, -1)
         except RuntimeError as e:
             raise e
+    image = image[:, ::step, ::step]
     b, ih, iw, c = image.shape
     h = 2
     w = image.shape[0] // h
@@ -120,8 +121,8 @@ def main(with_gui=None, check_stop=None):
         # Save for debug:
         if train_cfg.get('save', False):
             show_images(x, 'input', save_dir='debug')
-            show_images(y[:, :, ::2, ::2], 'output', is_mask=True, save_dir='debug')
-            show_images(target[:, :, ::2, ::2], 'target', is_mask=True, save_dir='debug')
+            show_images(y, 'output', mask=mask, save_dir='debug')
+            show_images(target, 'target', mask=mask, save_dir='debug')
             # with open('debug/classes.txt', 'w') as f:
             #    f.write(' '.join(classes))
 
@@ -129,8 +130,8 @@ def main(with_gui=None, check_stop=None):
         if with_gui:
             if not pause:
                 show_images(x, 'input')
-                show_images(y[:, :, ::2, ::2], 'output', is_mask=True)
-                show_images(target[:, :, ::2, ::2], 'target', is_mask=True)
+                show_images(y, 'output', mask=mask, step=2)
+                show_images(target, 'target', mask=mask, step=2)
             key = cv2.waitKey(1)
             if key == ord('s'):
                 torch.save(model.state_dict(), 'models/unet2.pt')
@@ -140,19 +141,8 @@ def main(with_gui=None, check_stop=None):
                 break
 
         # Optimize:
-        # if 'part' in classes:
-        #    part = [c == 'part' for c in classes]
-        #    loss_p, acc_p = part_loss(y[part], target[part], loss_f)
-        #    acc_sum_p += acc_p
-        #     not_part = [not p for p in part]
-        #     y = y[not_part]
-        #    target = target[not_part]
-        # else:
-        #    loss_p = None
         acc_sum += check_accuracy(y, target)
         loss = (loss_f(y, target) * mask).mean()
-        # if loss_p is not None:
-        #    loss = (loss + loss_p) * 0.5
         loss_item = loss.item()
         loss_sum += loss_item
         count += 1
@@ -162,7 +152,7 @@ def main(with_gui=None, check_stop=None):
 
         # Complete epoch:
         if images >= train_cfg['epoch_images']:
-            acc_total, names = acc_sum, channel_names # combine_acc(acc_sum, acc_sum_p, channel_names, channel_names[3:] + ['tbg'])
+            acc_total, names = acc_sum, channel_names
             msg = 'Epoch %d: train loss %f, acc %s' % (
                 epoch, loss_sum / count,
                 acc_to_str(acc_total, names=names)
@@ -173,7 +163,6 @@ def main(with_gui=None, check_stop=None):
             loss_sum = 0
             epoch += 1
             acc_sum[:] = 0
-            # acc_sum_p[:] = 0
             save_model(model_name, model, best_loss, epoch)
 
     log(model_name, 'Stopped\n')
