@@ -1,7 +1,17 @@
 import json
 import torch
 import numpy as np
+from os.path import join
+from pyzed import sl
 from collections import namedtuple
+
+sequences = {'sar': join('sar', 'rec2018_07_21-%s.svo')}
+views = {'l': sl.VIEW.VIEW_LEFT, 'r': sl.VIEW.VIEW_RIGHT}
+
+
+def decode_name(name: str, svo_dir: str):
+    seq_name, seq_idx, view = name.split('-')
+    return join(svo_dir, sequences[seq_name] % seq_idx), views[view]
 
 
 channels = [

@@ -10,7 +10,7 @@ import cv2
 from video import read_svo, open_ffmpeg, write_ffmpeg, close_ffmpeg
 from os.path import join, isfile, isdir, basename
 from os import mkdir
-from utils import probs_to_image, visualize, image_to_tensor
+from utils import probs_to_image, visualize, image_to_tensor, decode_name
 from model import load_model
 from pyzed import sl
 
@@ -54,6 +54,7 @@ def main(show=True, images_dir='images', image_fmt='%.3d.png'):
     enc_cfg = enc_cfg[args.p]
 
     model = None if args.m is None else load_model(args.m, device=device)[0]
+    view = sl.VIEW.VIEW_RIGHT if args.r else sl.VIEW.VIEW_LEFT
 
     if isdir(args.input):
         files = sorted([
@@ -64,8 +65,12 @@ def main(show=True, images_dir='images', image_fmt='%.3d.png'):
     elif isfile(args.input):
         files = [args.input]
     else:
-        print('No such file or directory: %s' % args.input)
-        return
+        fn, view = decode_name(args.input, config['svo_path'])
+        if isfile(fn):
+            files = [fn]
+        else:
+            print('No such file or directory: %s' % args.input)
+            return
 
     pause = False
     save_idx = get_save_idx(images_dir, image_fmt)
@@ -77,7 +82,7 @@ def main(show=True, images_dir='images', image_fmt='%.3d.png'):
     with torch.no_grad():
         for fn in files:
             print('Processing %s' % fn)
-            for source in read_svo(fn, sl.VIEW.VIEW_RIGHT if args.r else sl.VIEW.VIEW_LEFT):
+            for source in read_svo(fn, view):
 
                 # Processing:
                 if model is not None:

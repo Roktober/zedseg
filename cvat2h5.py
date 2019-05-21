@@ -6,11 +6,8 @@ from os.path import join, isfile
 from os import listdir
 import json
 import xml.etree.ElementTree as ET
-from utils import channel_names, probs_to_image, visualize
+from utils import channel_names, probs_to_image, visualize, decode_name
 from h5py import File
-
-sequences = {'sar': join('sar', 'rec2018_07_21-%s.svo')}
-views = {'l': sl.VIEW.VIEW_LEFT, 'r': sl.VIEW.VIEW_RIGHT}
 
 
 def process_xml(fn, svo_dir='svo', show: bool = True):
@@ -21,8 +18,10 @@ def process_xml(fn, svo_dir='svo', show: bool = True):
         if item.tag == 'meta':
             task = item.find('task')
             name = task.find('name').text
-            seq_name, seq_idx, view = name.split('-')
-            view = views[view]
+            fn, view = decode_name(name, svo_dir)
+            if not isfile(fn):
+                print('File %s not found, skipping')
+                return None
             size = task.find('original_size')
             size = [int(size.find(p).text) for p in ['height', 'width']]
         elif item.tag == 'track':
@@ -43,10 +42,6 @@ def process_xml(fn, svo_dir='svo', show: bool = True):
                     channel_data.append(points)
 
     # Init .svo reading:
-    fn = join(svo_dir, sequences[seq_name] % seq_idx)
-    if not isfile(fn):
-        print('File %s not found, skipping')
-        return None
     runtime = sl.RuntimeParameters(enable_depth=False, enable_point_cloud=False)
     mat = sl.Mat()
     init = sl.InitParameters(svo_input_filename=fn, svo_real_time_mode=False)
