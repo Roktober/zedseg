@@ -29,7 +29,8 @@ channel_names = ['ground', 'tree', 'bush', 'tower', 'wire', 'copter', 'car', 'bu
 
 
 def visualize(source: np.ndarray, result: np.ndarray):  # (height, width, 3)
-    return source | (result & 192)
+    out = source.astype(np.float32) + (result.astype(np.float32) - 128) * 0.5
+    return np.clip(out, 0.0, 255.0).astype(np.uint8)
 
 
 def probs_to_image(probs: torch.Tensor, mask: torch.Tensor = None):    # probs: (channels, height, width) [0, 1]

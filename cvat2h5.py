@@ -10,7 +10,7 @@ from utils import channel_names, probs_to_image, visualize, decode_name
 from h5py import File
 
 
-def process_xml(fn, svo_dir='svo', show: bool = True):
+def process_xml(fn, svo_dir='svo', show: bool = True, to_png: str = None):
     # Parse .xml
     root = ET.parse(fn).getroot()
     frames = {}
@@ -101,6 +101,8 @@ def process_xml(fn, svo_dir='svo', show: bool = True):
         if show:
             image = probs_to_image(target, mask=mask.unsqueeze(0))
             image = visualize(source_image, image)
+            if to_png is not None:
+                cv2.imwrite(join(to_png, '%s-%d.png' % (name, frame_num)), image)
             cv2.imshow('image', image)
             cv2.waitKey(1)
     return result_images[:frame_count], result_targets[:frame_count], name, frames_list

@@ -43,7 +43,7 @@ def open_ffmpeg(file_name, size=(1280, 720), mode='w', params={}):
     params = {k: v for k, v in params.items() if k != 'cmd'}
     return (
         ffmpeg
-        .input('pipe:', format='rawvideo', pix_fmt='bgr24', s='{}x{}'.format(*size))
+        .input('pipe:', format='rawvideo', pix_fmt='bgr24', s='{}x{}'.format(*size), r=params['r'])
         .output(file_name, **params)
         .overwrite_output()
         .run_async(cmd=cmd, pipe_stdin=True)
