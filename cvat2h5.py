@@ -43,9 +43,12 @@ def process_xml(fn, svo_dir='svo', show: bool = True):
                     channel_data.append(points)
 
     # Init .svo reading:
+    fn = join(svo_dir, sequences[seq_name] % seq_idx)
+    if not isfile(fn):
+        print('File %s not found, skipping')
+        return None
     runtime = sl.RuntimeParameters(enable_depth=False, enable_point_cloud=False)
     mat = sl.Mat()
-    fn = join(svo_dir, sequences[seq_name] % seq_idx)
     init = sl.InitParameters(svo_input_filename=fn, svo_real_time_mode=False)
     cam = sl.Camera()
     status = cam.open(init)
@@ -116,7 +119,10 @@ def main(xml_dir='cvat', result_fn='cvat.h5'):
     with File(result_fn, 'w') as file:
         for fn in filter(lambda f: f.endswith('.xml') and isfile(join(xml_dir, f)), listdir(xml_dir)):
             fn = join(xml_dir, fn)
-            images, targets, name, frames = process_xml(fn, svo_path, show)
+            result = process_xml(fn, svo_path, show)
+            if result is None:
+                continue
+            images, targets, name, frames = result
             if images.shape[0] > 0:
                 group = file.create_group(name)
                 group.attrs['frames'] = frames

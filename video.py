@@ -44,7 +44,6 @@ def open_ffmpeg(file_name, size=(1280, 720), mode='w', params={}):
     return (
         ffmpeg
         .input('pipe:', format='rawvideo', pix_fmt='bgr24', s='{}x{}'.format(*size))
-        # .output(file_name, pix_fmt='yuv420p')
         .output(file_name, **params)
         .overwrite_output()
         .run_async(cmd=cmd, pipe_stdin=True)

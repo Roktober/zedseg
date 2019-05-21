@@ -95,7 +95,7 @@ def main(show=True, images_dir='images', image_fmt='%.3d.png'):
 
                 # Open writer:
                 if writer is None and out_path is not None:
-                    dst = join(out_path, basename(fn)[:-3] + 'avi') if to_dir else out_path
+                    dst = join(out_path, basename(fn)[:-3] + 'mp4') if to_dir else out_path
                     print('Write to %s' % dst)
                     writer = open_ffmpeg(dst, (out_width, out_height), params=enc_cfg)
 
