@@ -7,12 +7,16 @@
     "items": [
       {
         "type": "png",
-        "batch": 2
+        "batch": 4
       },
       {
         "type": "h5",
-        "batch": 2,
-        "classes": [0, 1]
+        "batch": 1,
+        "classes": [0, 1, 2]
+      },
+      {
+        "type": "cvat",
+        "batch": 5
       }
     ]
   },
@@ -23,5 +27,29 @@
   "train": {
     "with_gui": true,
     "epoch_images": 64
+  },
+  "svo_path": "svo",
+  "video_enc": {
+    "default": "h264",
+    "h265": {
+      "cmd": "ffmpeg",
+      "pix_fmt": "p010le",
+      "c:v": "hevc_nvenc",
+      "preset": "slow",
+      "rc": "vbr_hq",
+      "b:v": "6M",
+      "maxrate:v": "10M",
+      "r": 12
+    },
+    "h264": {
+      "cmd": "ffmpeg",
+      "pix_fmt": "yuv420p",
+      "c:v": "h264_nvenc",
+      "preset": "slow",
+      "rc": "vbr_hq",
+      "b:v": "8M",
+      "maxrate:v": "10M",
+      "r": 12
+    }
   }
 }

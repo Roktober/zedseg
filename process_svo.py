@@ -7,7 +7,7 @@ from os.path import join, isfile, isdir
 import pyzed.sl as sl
 import numpy as np
 import cv2
-from read_svo import read_svo
+from video import read_svo, open_ffmpeg, write_ffmpeg, close_ffmpeg
 from os.path import join, isfile, isdir, basename
 from os import mkdir
 from utils import probs_to_image, visualize, image_to_tensor
@@ -38,6 +38,9 @@ def file_idx(fn):
 
 
 def main(show=True, images_dir='images', image_fmt='%.3d.png'):
+    with open('config.json', 'r') as f:
+        config = json.load(f)
+    enc_cfg = config['video_enc']
     parser = ArgumentParser(description='Process .svo files')
     parser.add_argument('input', type=str, help='Input directory or file')
     parser.add_argument('output', type=str, nargs='?', default=None, help='Output directory or file')
@@ -45,8 +48,10 @@ def main(show=True, images_dir='images', image_fmt='%.3d.png'):
     parser.add_argument('-f', type=int, required=False, default=1, help='Reduce factor')
     parser.add_argument('-v', action='store_true', required=False, default=False, help='Mix processed with input')
     parser.add_argument('-r', action='store_true', required=False, default=False, help='Read right image')
-    parser.add_argument('-c', type=str, required=False, default='M4S2', help='FOURCC code')
+    parser.add_argument('-p', type=str, required=False, default=enc_cfg.get('default'),
+                        help='Select parameters preset for FFMPEG')
     args = parser.parse_args()
+    enc_cfg = enc_cfg[args.p]
 
     model = None if args.m is None else load_model(args.m, device=device)[0]
 
@@ -92,12 +97,11 @@ def main(show=True, images_dir='images', image_fmt='%.3d.png'):
                 if writer is None and out_path is not None:
                     dst = join(out_path, basename(fn)[:-3] + 'avi') if to_dir else out_path
                     print('Write to %s' % dst)
-                    writer = cv2.VideoWriter(dst, cv2.VideoWriter_fourcc(*args.c),
-                                             10, (out_width, out_height))
+                    writer = open_ffmpeg(dst, (out_width, out_height), params=enc_cfg)
 
                 # Return output:
                 if writer is not None:
-                    writer.write(output)
+                    write_ffmpeg(writer, output)
                 else:
                     cv2.imshow('output', output)
                     while True:
@@ -118,11 +122,11 @@ def main(show=True, images_dir='images', image_fmt='%.3d.png'):
                         if not pause:
                             break
             if to_dir and writer is not None:
-                writer.release()
+                close_ffmpeg(writer)
                 writer = None
         if writer is not None:
-            writer.release()
+            close_ffmpeg(writer)
 
 
 if __name__ == "__main__":
-    main()  # files=['svo/sar/rec2018_07_21-33.svo'])
+    main()
