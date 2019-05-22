@@ -40,8 +40,8 @@ def probs_to_image(probs: torch.Tensor, mask: torch.Tensor = None):    # probs: 
         for c in range(min(len(channels), probs.shape[-3])):
             color = torch.tensor(channels[c], dtype=torch.uint8) * 255
             image[indices == c] = color
-        if mask:
-            if type(mask) is bool:
+        if mask is not None:
+            if type(mask) is not torch.Tensor:
                 mask = (probs > 0.5).any(-3).unsqueeze(-3)
             image[mask.squeeze(-3) == 0] = torch.tensor((128, 128, 128), dtype=torch.uint8)
         return image.cpu().numpy()  # image (height, width, 3) [0, 255]

@@ -21,7 +21,7 @@ def process_xml(fn, svo_dir='svo', show: bool = True, to_png: str = None):
             name = task.find('name').text
             fn, view = decode_name(name, svo_dir)
             if not isfile(fn):
-                print('File %s not found, skipping')
+                print('File %s not found, skipping' % fn)
                 return None
             size = task.find('original_size')
             size = [int(size.find(p).text) for p in ['height', 'width']]
@@ -100,13 +100,14 @@ def process_xml(fn, svo_dir='svo', show: bool = True, to_png: str = None):
         frame_count += 1
         frames_list.append(frame_num)
 
-        if show:
+        if show or to_png is not None:
             image = probs_to_image(target, mask=mask.unsqueeze(0))
             image = visualize(source_image, image)
             if to_png is not None:
                 cv2.imwrite(join(to_png, '%s-%d.png' % (name, frame_num)), image)
-            cv2.imshow('image', image)
-            cv2.waitKey(1)
+            if show:
+                cv2.imshow('image', image)
+                cv2.waitKey(1)
     return result_images[:frame_count], result_targets[:frame_count], name, frames_list
 
 
