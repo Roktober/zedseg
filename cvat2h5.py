@@ -8,6 +8,7 @@ import json
 import xml.etree.ElementTree as ET
 from utils import channel_names, probs_to_image, visualize, decode_name
 from h5py import File
+from argparse import ArgumentParser
 
 
 def process_xml(fn, svo_dir='svo', show: bool = True, to_png: str = None):
@@ -70,7 +71,8 @@ def process_xml(fn, svo_dir='svo', show: bool = True, to_png: str = None):
             if label in ['water', 'person']:
                 label = 'ground'
             color = channel_names.index(label)
-            cv2.fillPoly(frame, pts=points, color=color + 1)
+            for ps in points:
+                cv2.fillPoly(frame, pts=[ps], color=color + 1)
         target = torch.zeros([channel_count + 1] + size, dtype=torch.uint8)
         target.reshape(channel_count + 1, -1)[
             torch.tensor(frame, dtype=torch.int64).flatten(),
@@ -109,6 +111,10 @@ def process_xml(fn, svo_dir='svo', show: bool = True, to_png: str = None):
 
 
 def main(xml_dir='cvat', result_fn='cvat.h5'):
+    parser = ArgumentParser(description='CVAT to h5 converter')
+    parser.add_argument('png_output', type=str, nargs='?', default=None, help='Directory to write debug images')
+    args = parser.parse_args()
+    png_output = args.png_output
     with open('config.json', 'r') as file:
         config = json.load(file)
         svo_path = config['svo_path']
@@ -116,7 +122,7 @@ def main(xml_dir='cvat', result_fn='cvat.h5'):
     with File(result_fn, 'w') as file:
         for fn in filter(lambda f: f.endswith('.xml') and isfile(join(xml_dir, f)), listdir(xml_dir)):
             fn = join(xml_dir, fn)
-            result = process_xml(fn, svo_path, show)
+            result = process_xml(fn, svo_path, show, png_output)
             if result is None:
                 continue
             images, targets, name, frames = result
