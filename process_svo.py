@@ -88,7 +88,7 @@ def main(show=True, images_dir='images', image_fmt='%.3d.png'):
                 if model is not None:
                     data = image_to_tensor(source, device=device)
                     data = model(data).squeeze(0)  # [:, :2]
-                    result = probs_to_image(data)
+                    result = probs_to_image(data, mask=True)
                     output = visualize(source, result) if args.v else result
                 else:
                     output = source
