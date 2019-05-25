@@ -91,6 +91,7 @@ def main(show=True, images_dir='images', image_fmt='%.3d.png'):
                     result = probs_to_image(data, mask=True)
                     output = visualize(source, result) if args.v else result
                 else:
+                    result = None
                     output = source
 
                 if out_height is None:
@@ -114,9 +115,9 @@ def main(show=True, images_dir='images', image_fmt='%.3d.png'):
                         if key == ord('p'):
                             pause = not pause
                         elif key == ord('s'):
-                            result = probs_to_image(data)
                             cv2.imwrite(join('images', 'saved-in', image_fmt % save_idx), source)
-                            cv2.imwrite(join('images', 'saved-out', image_fmt % save_idx), result)
+                            if result is not None:
+                                cv2.imwrite(join('images', 'saved-out', image_fmt % save_idx), result)
                             save_idx += 1
                         elif key == ord('q'):
                             return
