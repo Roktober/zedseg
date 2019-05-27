@@ -66,7 +66,9 @@ def main(show=True, images_dir='images', image_fmt='%.3d.png'):
         files = [args.input]
     else:
         fn, view = decode_name(args.input, config['svo_path'])
-        if isfile(fn):
+        if type(fn) is list:
+            files = fn
+        elif isfile(fn):
             files = [fn]
         else:
             print('No such file or directory: %s' % args.input)
@@ -75,12 +77,20 @@ def main(show=True, images_dir='images', image_fmt='%.3d.png'):
     pause = False
     save_idx = get_save_idx(images_dir, image_fmt)
 
-    out_path = args.output
     writer = None
+    out_path = args.output
+    if out_path == 'auto':
+        out_path = config['mp4_path'].replace('{model}', args.m or '')
+        if not isdir(out_path):
+            mkdir(out_path)
+
     to_dir = False if out_path is None else isdir(out_path)
     out_height, out_width = None, None
     with torch.no_grad():
         for fn in files:
+            if not isfile(fn):
+                print('File %s not found!' % fn)
+                continue
             print('Processing %s' % fn)
             for source in read_svo(fn, view):
 

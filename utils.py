@@ -11,6 +11,10 @@ views = {'l': sl.VIEW.VIEW_LEFT, 'r': sl.VIEW.VIEW_RIGHT}
 
 def decode_name(name: str, svo_dir: str):
     seq_name, seq_idx, view = name.split('-')
+    indices = seq_idx.split(':')
+    if len(indices) == 2:
+        a, b = map(int, indices)
+        return [join(svo_dir, sequences[seq_name] % str(i)) for i in range(a, b)], views[view]
     return join(svo_dir, sequences[seq_name] % seq_idx), views[view]
 
 

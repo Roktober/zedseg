@@ -29,6 +29,7 @@
     "epoch_images": 64
   },
   "svo_path": "svo",
+  "mp4_path": "mp4\\{model}",
   "video_enc": {
     "default": "h264",
     "h265": {

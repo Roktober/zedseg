@@ -7,6 +7,7 @@ svo
 models/*/
 debug/
 avi/
+mp4/
 *.avi
 cuts_bak.csv
 *.png~
