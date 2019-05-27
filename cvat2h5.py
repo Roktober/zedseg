@@ -19,7 +19,10 @@ def process_xml(fn, svo_dir='svo', show: bool = True, to_png: str = None):
         if item.tag == 'meta':
             task = item.find('task')
             name = task.find('name').text
-            fn, view = decode_name(name, svo_dir)
+            dn = decode_name(name)
+            assert len(dn) == 1
+            fn, _, view = dn[0]
+            fn = join(svo_dir, fn)
             if not isfile(fn):
                 print('File %s not found, skipping' % fn)
                 return None

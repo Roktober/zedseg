@@ -9,13 +9,21 @@ sequences = {'sar': join('sar', 'rec2018_07_21-%s.svo')}
 views = {'l': sl.VIEW.VIEW_LEFT, 'r': sl.VIEW.VIEW_RIGHT}
 
 
-def decode_name(name: str, svo_dir: str):
+DecodedName = namedtuple('DecodedName', 'file_name name view')
+
+
+def decode_name(name: str):
     seq_name, seq_idx, view = name.split('-')
     indices = seq_idx.split(':')
     if len(indices) == 2:
         a, b = map(int, indices)
-        return [join(svo_dir, sequences[seq_name] % str(i)) for i in range(a, b)], views[view]
-    return join(svo_dir, sequences[seq_name] % seq_idx), views[view]
+        r = range(a, b)
+    else:
+        r = [int(seq_idx)]
+    return [
+        DecodedName(sequences[seq_name] % str(i), '%s-%d-%s' % (seq_name, i, view), views[view])
+        for i in r
+    ]
 
 
 channels = [

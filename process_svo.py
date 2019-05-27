@@ -55,6 +55,7 @@ def main(show=True, images_dir='images', image_fmt='%.3d.png'):
 
     model = None if args.m is None else load_model(args.m, device=device)[0]
     view = sl.VIEW.VIEW_RIGHT if args.r else sl.VIEW.VIEW_LEFT
+    svo_path = config['svo_path']
 
     if isdir(args.input):
         files = sorted([
@@ -65,12 +66,9 @@ def main(show=True, images_dir='images', image_fmt='%.3d.png'):
     elif isfile(args.input):
         files = [args.input]
     else:
-        fn, view = decode_name(args.input, config['svo_path'])
-        if type(fn) is list:
-            files = fn
-        elif isfile(fn):
-            files = [fn]
-        else:
+        try:
+            files = decode_name(args.input)
+        except ValueError:
             print('No such file or directory: %s' % args.input)
             return
 
@@ -87,7 +85,15 @@ def main(show=True, images_dir='images', image_fmt='%.3d.png'):
     to_dir = False if out_path is None else isdir(out_path)
     out_height, out_width = None, None
     with torch.no_grad():
-        for fn in files:
+        for dn in files:
+            if type(dn) == str:
+                fn = dn
+                out_name = basename(fn)[:-4]
+            else:
+                fn, out_name, view = dn
+                fn = join(svo_path, fn)
+            out_name = join(out_path, out_name + '.mp4')
+
             if not isfile(fn):
                 print('File %s not found!' % fn)
                 continue
@@ -111,7 +117,7 @@ def main(show=True, images_dir='images', image_fmt='%.3d.png'):
 
                 # Open writer:
                 if writer is None and out_path is not None:
-                    dst = join(out_path, basename(fn)[:-3] + 'mp4') if to_dir else out_path
+                    dst = out_name if to_dir else out_path
                     print('Write to %s' % dst)
                     writer = open_ffmpeg(dst, (out_width, out_height), params=enc_cfg)
 
