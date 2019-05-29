@@ -78,7 +78,10 @@ def main(show=True, images_dir='images', image_fmt='%.3d.png'):
     writer = None
     out_path = args.output
     if out_path == 'auto':
-        out_path = config['mp4_path'].replace('{model}', args.m or '')
+        model_name = args.m
+        if model_name is not None and args.v:
+            model_name += '-v'
+        out_path = config['mp4_path'].replace('{model}', model_name or '')
         if not isdir(out_path):
             mkdir(out_path)
 
