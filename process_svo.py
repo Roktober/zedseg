@@ -13,6 +13,7 @@ from os import mkdir
 from utils import probs_to_image, visualize, image_to_tensor, decode_name
 from model import load_model
 from pyzed import sl
+from motion import MotionEstimator
 
 print('PyTorch version:', torch.__version__)
 USE_CUDA = torch.cuda.is_available()
@@ -47,6 +48,7 @@ def main(show=True, images_dir='images', image_fmt='%.3d.png'):
     parser.add_argument('-m', type=str, required=False, help='Model to process with')
     parser.add_argument('-f', type=int, required=False, default=1, help='Reduce factor')
     parser.add_argument('-v', action='store_true', required=False, default=False, help='Mix processed with input')
+    parser.add_argument('-e', action='store_true', required=False, default=False, help='Estimate motion')
     parser.add_argument('-r', action='store_true', required=False, default=False, help='Read right image')
     parser.add_argument('-p', type=str, required=False, default=enc_cfg.get('default'),
                         help='Select parameters preset for FFMPEG')
@@ -87,6 +89,7 @@ def main(show=True, images_dir='images', image_fmt='%.3d.png'):
 
     to_dir = False if out_path is None else isdir(out_path)
     out_height, out_width = None, None
+    estimator = MotionEstimator('fly1', with_gui=out_path is None)
     with torch.no_grad():
         for dn in files:
             if type(dn) == str:
@@ -95,18 +98,22 @@ def main(show=True, images_dir='images', image_fmt='%.3d.png'):
             else:
                 fn, out_name, view = dn
                 fn = join(svo_path, fn)
-            out_name = join(out_path, out_name + '.mp4')
+            out_name = None if out_path is None else join(out_path, out_name + '.mp4')
 
             if not isfile(fn):
                 print('File %s not found!' % fn)
                 continue
             print('Processing %s' % fn)
-            for source in read_svo(fn, view):
+            for frame_idx, source in enumerate(read_svo(fn, view)):
 
                 # Processing:
                 if model is not None:
                     data = image_to_tensor(source, device=device)
                     data = model(data).squeeze(0)  # [:, :2]
+                    if args.e:
+                        mask = (data[4:6] < 0.5).all(0)
+                        estimator.add(source, mask.cpu().numpy(), out_name, frame_idx)
+
                     result = probs_to_image(data, mask=True)
                     output = visualize(source, result) if args.v else result
                 else:
