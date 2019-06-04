@@ -17,7 +17,7 @@ class MotionEstimator:
         self.with_gui = with_gui
         with open(self.file_name, 'w', newline='') as file:
             writer = csv.writer(file)
-            writer.writerow(['name frame homography'])
+            writer.writerow(['name', 'frame', 'homography'])
 
     @staticmethod
     def mul_2d(a, b):
@@ -49,7 +49,7 @@ class MotionEstimator:
             self.mat = h if self.mat is None else self.mul_2d(h, self.mat)
             with open(self.file_name, 'a', newline='') as file:
                 writer = csv.writer(file)
-                writer.writerow([name, frame_idx, ' '.join(map(str, self.mat.flatten().tolist()))])
+                writer.writerow([name, frame_idx, ' '.join(map(str, h.flatten().tolist()))])
             if self.with_gui:
                 height, width, channels = image.shape
                 image = np.copy(image)
