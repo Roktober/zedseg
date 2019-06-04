@@ -2,7 +2,6 @@ import numpy as np
 import cv2
 import csv
 
-
 MAX_FEATURES = 500
 GOOD_MATCH_PERCENT = 0.15
 
@@ -19,6 +18,12 @@ class MotionEstimator:
         with open(self.file_name, 'w', newline='') as file:
             writer = csv.writer(file)
             writer.writerow(['name frame homography'])
+
+    @staticmethod
+    def mul_2d(a, b):
+        m = np.matmul(a[:, :2], b)
+        m[:, 2] += a[:, 2]
+        return m
 
     def add(self, image, mask, name, frame_idx):
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -39,8 +44,9 @@ class MotionEstimator:
                 points1[i, :] = self.key_points[match.queryIdx].pt
                 points2[i, :] = key_points[match.trainIdx].pt
             # mat = cv2.estimateRigidTransform(points2, points1, False)
-            h, m = cv2.findHomography(points2, points1, cv2.RANSAC)
-            self.mat = h if self.mat is None else np.matmul(self.mat, h)
+            h, m = cv2.estimateAffinePartial2D(points2, points1)
+            # h, m = cv2.findHomography(points2, points1, cv2.RANSAC)
+            self.mat = h if self.mat is None else self.mul_2d(h, self.mat)
             with open(self.file_name, 'a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerow([name, frame_idx, ' '.join(map(str, self.mat.flatten().tolist()))])
@@ -52,14 +58,18 @@ class MotionEstimator:
                 mask[-1] = 0
                 mask[:, 0] = 0
                 mask[:, -1] = 0
-                mask = cv2.warpPerspective(mask, self.mat, (width, height)).astype(bool)
-                res = cv2.warpPerspective(image, self.mat, (width, height))  # ,flags=cv2.WARP_INVERSE_MAP)
+                mask = cv2.warpAffine(mask, self.mat, (width, height * 2)).astype(bool)
+                res = cv2.warpAffine(image, self.mat, (width, height * 2))  # ,flags=cv2.WARP_INVERSE_MAP)
+                # mask = cv2.warpPerspective(mask, self.mat, (width, height * 2)).astype(bool)
+                # res = cv2.warpPerspective(image, self.mat, (width, height * 2))  # ,flags=cv2.WARP_INVERSE_MAP)
                 self.image[mask] = res[mask]
                 # cv2.addWeighted(self.image, 0.5, res, 0.5, 0.0)
                 cv2.imshow('res', self.image)
         else:
-            self.image = np.copy(image)
-            self.image[~mask.astype(bool)] = 0
+            height, width, channels = image.shape
+            self.image = np.zeros((height * 2, width, channels), dtype=image.dtype)
+            self.image[:height] = image
+            self.image[:height][~mask.astype(bool)] = 0
 
         self.key_points = key_points
         self.desc = descriptors
