@@ -1,0 +1,9 @@
+torch
+numpy
+albumentations
+ffmpeg-python
+h5py
+pywin32
+torchvision
+opencv-python
+opencv-contrib-python

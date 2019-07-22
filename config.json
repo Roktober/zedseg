@@ -1,0 +1,57 @@
+{
+  "device": 0,
+  "model": "unet512-2",
+  "generator": {
+    "type": "combo",
+    "resolution": [320, 320],
+    "items": [
+      {
+        "type": "png",
+        "batch": 4
+      },
+      {
+        "type": "h5",
+        "batch": 1,
+        "classes": [0, 1, 2]
+      },
+      {
+        "type": "cvat",
+        "batch": 5
+      }
+    ]
+  },
+  "optimizer": {
+    "type": "adam",
+    "lr": 1e-5
+  },
+  "train": {
+    "with_gui": false,
+    "save": false,
+    "epoch_images": 1024
+  },
+  "svo_path": "../../svo",
+  "mp4_path": "..\\..\\mp4\\{model}",
+  "video_enc": {
+    "default": "h265",
+    "h265": {
+      "cmd": "e:\\igor\\tools\\ffmpeg\\bin\\ffmpeg",
+      "pix_fmt": "p010le",
+      "c:v": "hevc_nvenc",
+      "preset": "slow",
+      "rc": "vbr_hq",
+      "b:v": "6M",
+      "maxrate:v": "10M",
+      "r": 12
+    },
+    "h264": {
+      "cmd": "e:\\igor\\tools\\ffmpeg\\bin\\ffmpeg",
+      "pix_fmt": "yuv420p",
+      "c:v": "h264_nvenc",
+      "preset": "slow",
+      "rc": "vbr_hq",
+      "b:v": "8M",
+      "maxrate:v": "10M",
+      "r": 12
+    }
+  }
+}

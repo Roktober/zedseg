@@ -1,6 +1,5 @@
 cvat.h5
 cuts.h5
-config.json
 svo
 .idea
 **/__pycache__
