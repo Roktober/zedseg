@@ -1,19 +1,20 @@
-import torch
+#import torch
 import numpy as np
-from utils import image_to_probs
+#from utils import image_to_probs
 from os import listdir
 from os.path import join, isdir, isfile
 from random import choice
-from cv2 import imread
+#from cv2 import imread
 
 
 def png_generate(batch=4, classes=None, root_dir='images', make_tensor=False, device=None):
     if classes is None:
-        classes = [
+        classes = [ # list с папками кончающимися на -in, берем только -in
             name[:-3]
             for name in listdir(root_dir)
             if name.endswith('-in') and isdir(join(root_dir, name)) and name[:-3] not in ['saved']
-        ]
+        ] 
+    print(classes)
     files = sum([
         [
             (join(root_dir, c + '-in', fn), join(root_dir, c + '-out', fn), c)
@@ -22,6 +23,7 @@ def png_generate(batch=4, classes=None, root_dir='images', make_tensor=False, de
         ]
         for c in classes
     ], [])
+    print(files)
     while True:
         inputs, outputs = [], []
         for _ in range(batch):
@@ -35,4 +37,6 @@ def png_generate(batch=4, classes=None, root_dir='images', make_tensor=False, de
             else:
                 inputs.append(imread(f_in))
                 outputs.append(np.moveaxis(out.numpy(), 0, -1))
-        yield inputs, outputs
+        #yield inputs, outputs
+print(1)
+png_generate()

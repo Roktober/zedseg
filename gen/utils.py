@@ -9,6 +9,10 @@ types = {
 
 
 def create_generator(definition, device=None):
+    """
+    'defenition' - 'generator' из файла 'config.json'
+    Создает генератор, если 'type' = comb, использует все генераторы
+    """
     gen_type = definition['type']
     if gen_type == 'combo':
         items = [create_generator(item) for item in definition['items']]

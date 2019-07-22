@@ -13,6 +13,10 @@ def augment(image, resolution):
 
 def h5_generate(batch=4, classes=None, input_channels=3, source='cuts.h5',
                 resolution=(320, 320), device=None, make_tensor=False):
+    """
+    Генерирует датасет из h5 файла, создает генератор, возвращает две np матрицы или два torch тензора
+    'cuts.h5' сгенерирован из xml полученных в cvat
+    """
     with File(source, mode='r') as file:
         groups = [
             file[group_name]
