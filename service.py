@@ -1,3 +1,6 @@
+"""
+Запуск 'train.py' как службы windows
+"""
 import win32serviceutil
 import win32service
 import win32event
