@@ -21,6 +21,9 @@ from albumentations import (
 
 
 def comb_generate(gens, resolution=(320, 320), device=None, input_channels=3):
+    """
+    Использует все генераторы, готовит данные для обучения, меняет размер и параметры изображения
+    """
     aug = Compose([
         RandomSizedCrop(min_max_height=(200, 320), height=resolution[0], width=resolution[1], p=1.0),
         VerticalFlip(p=0.5),
