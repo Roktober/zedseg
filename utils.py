@@ -60,8 +60,8 @@ def probs_to_image(probs: torch.Tensor, mask: torch.Tensor = None):    # probs: 
 
 
 def image_to_probs(image: np.ndarray, device=None):
-    result = torch.zeros((len(channels),) + image.shape[-3:-1], device=device, dtype=torch.uint8)
-    image = torch.tensor(np.moveaxis(image, -1, -3), device=device) > 128
+    result = torch.zeros((len(channels),) + image.shape[-3:-1], device=device, dtype=torch.uint8) # матрица с нулями, например (4, 720, 480)
+    image = torch.tensor(np.moveaxis(image, -1, -3), device=device) > 128 # (3, 720, 1280) матрица типа bool
     for channel, color in enumerate(channels):
         color = torch.tensor(color, dtype=torch.uint8, device=device).unsqueeze(-1).unsqueeze(-1)
         mask = (image == color).all(dim=-3)
